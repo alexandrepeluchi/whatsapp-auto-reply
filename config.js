@@ -56,6 +56,10 @@ module.exports = {
     respondToGroups: true,      // Responder em grupos
     respondToPrivate: true,      // Responder em conversas privadas
     caseSensitive: false,        // Diferenciar maiúsculas/minúsculas
-    matchWholeWord: false        // Exigir palavra completa (true) ou permitir parte da palavra (false)
+    matchWholeWord: false,       // Exigir palavra completa (true) ou permitir parte da palavra (false)
+    delayRange: {
+      min: 10,                   // Delay mínimo em segundos antes de responder
+      max: 20                    // Delay máximo em segundos antes de responder
+    }
   }
 };

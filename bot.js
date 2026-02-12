@@ -159,14 +159,20 @@ client.on('message', async (message) => {
                 )
             ]);
         } catch (chatError) {
-            console.log('⚠️  Erro ao obter informações do chat, respondendo mesmo assim...');
-            // Delay aleatório entre 10 e 20 segundos
-            const delay = getRandomDelay(10, 20);
-            console.log(`⏳ Aguardando ${delay / 1000} segundos antes de responder...`);
+            // Delay aleatório configurável
+            const delay = getRandomDelay(config.settings.delayRange.min, config.settings.delayRange.max);
+            
+            console.log('\n────────────────────────────────────────');
+            console.log(`📩 Mensagem: "${message.body}"`);
+            console.log(`🎯 Resposta escolhida: "${response}"`);
+            console.log(`⏳ Aguardando ${delay / 1000}s antes de responder...`);
+            
             await sleep(delay);
+            
             // Responde mesmo sem conseguir pegar info do chat
             await message.reply(response);
-            console.log('✅ Resposta enviada\n');
+            console.log(`✅ Resposta enviada!`);
+            console.log('────────────────────────────────────────\n');
             return;
         }
         
@@ -176,19 +182,23 @@ client.on('message', async (message) => {
         if (isGroup && !config.settings.respondToGroups) return;
         if (!isGroup && !config.settings.respondToPrivate) return;
         
-        // Log da mensagem recebida (simplificado)
+        // Delay aleatório configurável
+        const delay = getRandomDelay(config.settings.delayRange.min, config.settings.delayRange.max);
         const chatName = isGroup ? chat.name : 'Privado';
+        
+        // Log completo antes de aguardar (tudo junto, síncrono)
+        console.log('\n────────────────────────────────────────');
         console.log(`📩 ${chatName} ${isGroup ? '(Grupo)' : ''}: "${message.body}"`);
+        console.log(`🎯 Resposta escolhida: "${response}"`);
+        console.log(`⏳ Aguardando ${delay / 1000}s antes de responder...`);
         
-        // Delay aleatório entre 10 e 20 segundos
-        const delay = getRandomDelay(10, 20);
-        console.log(`⏳ Aguardando ${delay / 1000} segundos antes de responder...`);
+        // Aguardar (silenciosamente)
         await sleep(delay);
-        
-        console.log(`🤖 Respondendo: "${response}"\n`);
         
         // Enviar resposta
         await message.reply(response);
+        console.log(`✅ Resposta enviada!`);
+        console.log('────────────────────────────────────────\n');
         
     } catch (error) {
         console.error('❌ Erro ao processar mensagem:', error.message || error);
@@ -196,11 +206,18 @@ client.on('message', async (message) => {
         try {
             const response = checkTriggers(message.body);
             if (response) {
-                const delay = getRandomDelay(10, 20);
-                console.log(`⏳ Aguardando ${delay / 1000} segundos antes de responder...`);
+                const delay = getRandomDelay(config.settings.delayRange.min, config.settings.delayRange.max);
+                
+                console.log('\n────────────────────────────────────────');
+                console.log(`📩 Mensagem: "${message.body}"`);
+                console.log(`🎯 Resposta escolhida: "${response}"`);
+                console.log(`⏳ Aguardando ${delay / 1000}s antes de responder...`);
+                
                 await sleep(delay);
                 await message.reply(response);
-                console.log('✅ Resposta enviada apesar do erro\n');
+                
+                console.log(`✅ Resposta enviada! (apesar do erro anterior)`);
+                console.log('────────────────────────────────────────\n');
             }
         } catch (replyError) {
             console.error('❌ Não foi possível enviar resposta:', replyError.message || replyError);
