@@ -3,20 +3,51 @@ module.exports = {
   // Lista de palavras-chave e suas respostas
   autoReplies: [
     {
-      triggers: ['oi', 'olá', 'ola', 'hey'],
-      response: 'Olá! Como posso ajudar? 😊'
+      triggers: [['alguém', 'hoje'], ['alguem', 'hoje']],
+      requireAll: true,
+      responses: ['Posso', 'Posso pegar', 'Eu posso']
     },
     {
-      triggers: ['tudo bem', 'como vai', 'td bem'],
-      response: 'Tudo ótimo! E você? 👍'
+      triggers: [['alguém', 'pode'], ['alguem', 'pode']],
+      requireAll: true,
+      responses: ['Posso', 'Posso pegar', 'Eu posso']
     },
     {
-      triggers: ['preço', 'preco', 'quanto custa'],
-      response: 'Para informações sobre preços, por favor entre em contato pelo telefone (XX) XXXXX-XXXX ou email@exemplo.com'
+      triggers: [['passo', 'dia']],
+      requireAll: true,
+      responses: ['Posso', 'Posso pegar', 'Eu posso']
     },
     {
-      triggers: ['horário', 'horario', 'funciona'],
-      response: 'Nosso horário de atendimento é:\n📅 Segunda a Sexta: 9h às 18h\n📅 Sábado: 9h às 13h'
+      triggers: [['passo', 'plantão'], ['passo', 'plantao']],
+      requireAll: true,
+      responses: ['Posso', 'Posso pegar', 'Eu posso']
+    },
+    {
+      triggers: [['alguém', 'dia'], ['alguem', 'dia']],
+      requireAll: true,
+      responses: ['Posso', 'Posso pegar', 'Eu posso']
+    },
+    {
+      triggers: [['alguém', 'disponível'], ['alguem', 'disponivel'], ['alguém', 'disponivel'], ['alguem', 'disponível']],
+      requireAll: true,
+      responses: ['Posso', 'Posso pegar', 'Eu posso']
+    },
+    {
+      triggers: [['alguém', '\\b\\d{1,2}h\\b'], ['alguem', '\\b\\d{1,2}h\\b']],
+      requireAll: true,
+      isRegex: true,
+      responses: ['Posso', 'Posso pegar', 'Eu posso']
+    },
+    {
+      triggers: [['plantão', '\\b\\d{1,2}h\\b'], ['plantao', '\\b\\d{1,2}h\\b']],
+      requireAll: true,
+      isRegex: true,
+      responses: ['Posso', 'Posso pegar', 'Eu posso']
+    },
+    {
+      triggers: [['alguém', 'plantão'], ['alguem', 'plantao'], ['alguém', 'plantao'], ['alguem', 'plantão']],
+      requireAll: true,
+      responses: ['Posso', 'Posso pegar', 'Eu posso']
     }
   ],
 
