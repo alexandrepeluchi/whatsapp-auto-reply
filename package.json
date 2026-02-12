@@ -1,0 +1,16 @@
+{
+  "name": "whatsapp-local-bot",
+  "version": "1.0.0",
+  "description": "Bot do WhatsApp que responde automaticamente baseado em palavras-chave",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "keywords": ["whatsapp", "bot", "automation"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
