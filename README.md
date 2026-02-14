@@ -1,14 +1,16 @@
-# 🤖 WhatsApp Bot Local - Respostas Automáticas
+# 🤖 WhatsApp Bot Local - Respostas Automáticas Inteligentes
 
-Bot automatizado para WhatsApp que responde mensagens baseadas em palavras-chave específicas. Funciona em grupos e conversas privadas.
+Bot automatizado para WhatsApp com respostas naturais e humanizadas. Suporta respostas múltiplas, delays aleatórios, regex e blacklist anti-spam.
 
 ## 📋 Índice
 
 - [O que é este projeto?](#-o-que-é-este-projeto)
+- [✨ Funcionalidades](#-funcionalidades)
 - [Pré-requisitos](#-pré-requisitos)
 - [Instalação do Node.js](#-instalação-do-nodejs)
 - [Configuração do Projeto](#-configuração-do-projeto)
 - [Personalizando as Respostas](#-personalizando-as-respostas)
+- [Configurações Avançadas](#-configurações-avançadas)
 - [Executando o Bot](#-executando-o-bot)
 - [Lendo o QR Code](#-lendo-o-qr-code)
 - [Parando o Bot](#-parando-o-bot)
@@ -28,6 +30,40 @@ Este bot monitora suas conversas do WhatsApp e responde automaticamente quando d
 - ✅ Grupos do WhatsApp
 - ✅ Conversas privadas
 - ✅ WhatsApp Business
+
+---
+
+## ✨ Funcionalidades
+
+### 🎲 Respostas Variadas
+- Configure múltiplas respostas para o mesmo trigger
+- O bot escolhe aleatoriamente para parecer mais natural
+- Exemplo: "Posso", "Posso sim", "Eu posso pegar"
+
+### ⏱️ Delays Aleatórios
+- Bot aguarda um tempo aleatório antes de responder
+- Parece mais humano e natural
+- Configurável: min/max em segundos
+
+### 🎯 Triggers Avançados
+- **Palavra simples**: busca por uma palavra
+- **Múltiplas palavras**: busca por várias palavras na mesma mensagem
+- **Regex**: use expressões regulares para padrões complexos
+
+### 🚫 Blacklist Anti-Spam
+- Ignore automaticamente mensagens indesejadas
+- Bloqueie spam, propagandas e ofertas
+- Personalizável
+
+### 📊 Logs Detalhados
+- Acompanhe todas as interações em tempo real
+- Timestamps formatados (DD/MM/YYYY HH:MM:SS)
+- Informação de grupo/privado e tempo de delay
+
+### 🛡️ Tratamento de Erros Robusto
+- Continua funcionando mesmo com erros de conexão
+- Timeouts configurados para evitar travamentos
+- Retry automático em caso de falhas
 
 ---
 
@@ -132,7 +168,7 @@ npm install
 
 Abra o arquivo [config.js](config.js) em qualquer editor de texto (Bloco de Notas, VSCode, etc.)
 
-### Estrutura Básica
+### Estrutura Básica (Resposta Simples)
 
 ```javascript
 {
@@ -141,35 +177,147 @@ Abra o arquivo [config.js](config.js) em qualquer editor de texto (Bloco de Nota
 }
 ```
 
+### 🎲 Respostas Múltiplas (Mais Natural!)
+
+```javascript
+{
+  triggers: ['oi', 'olá', 'hey'],
+  responses: [
+    'Olá! Como posso ajudar? 😊',
+    'Oi! Tudo bem?',
+    'Hey! Em que posso ajudar?'
+  ]
+}
+// O bot escolhe UMA resposta aleatoriamente cada vez
+```
+
+### 🎯 Busca por Múltiplas Palavras
+
+```javascript
+{
+  triggers: [
+    ['alguém', 'disponível'],  // Busca "alguém" E "disponível" na mesma mensagem
+    ['alguem', 'disponivel']   // Variação sem acento
+  ],
+  requireAll: true,            // Todas as palavras devem estar presentes
+  responses: ['Eu posso!', 'Posso ajudar', 'Estou disponível']
+}
+```
+
+### 🔍 Usando Expressões Regulares (Avançado)
+
+```javascript
+{
+  triggers: [
+    ['plantão', '\\b\\d{1,2}h\\b'],  // Busca "plantão" + horário (ex: "14h", "9h")
+    ['plantao', '\\b\\d{1,2}h\\b']
+  ],
+  requireAll: true,
+  isRegex: true,               // Ativa suporte a regex
+  responses: ['Posso pegar!', 'Eu pego esse']
+}
+// Exemplo: "Alguém pode pegar o plantão das 14h?" → Bot responde!
+```
+
 ### Exemplos de Configurações
 
 ```javascript
-// Exemplo 1: Saudação
+// Exemplo 1: Saudação simples
 {
   triggers: ['oi', 'olá', 'hey', 'bom dia'],
   response: 'Olá! Como posso ajudar você hoje? 😊'
 }
 
-// Exemplo 2: Informações de contato
+// Exemplo 2: Saudação com respostas variadas
+{
+  triggers: ['oi', 'olá', 'hey'],
+  responses: [
+    'Olá! Como vai? 😊',
+    'Oi! Tudo bem?',
+    'Hey! Em que posso ajudar?',
+    'Olá! Seja bem-vindo!'
+  ]
+}
+
+// Exemplo 3: Informações de contato
 {
   triggers: ['contato', 'telefone', 'email'],
   response: '📞 Telefone: (11) 99999-9999\n📧 Email: contato@exemplo.com'
 }
 
-// Exemplo 3: Horário de funcionamento
+// Exemplo 4: Horário de funcionamento
 {
   triggers: ['horário', 'horario', 'aberto', 'funciona'],
   response: '🕐 Horários:\nSeg-Sex: 9h às 18h\nSáb: 9h às 13h\nDom: Fechado'
 }
 
-// Exemplo 4: Localização
+// Exemplo 5: Localização
 {
   triggers: ['endereço', 'endereco', 'localização', 'onde fica'],
   response: '📍 Rua Exemplo, 123 - Centro\nSão Paulo - SP\nCEP: 01234-567'
 }
+
+// Exemplo 6: Busca avançada - detectar quando alguém oferece algo
+{
+  triggers: [
+    ['passo', 'plantão'],
+    ['vendo', 'vaga']
+  ],
+  requireAll: true,
+  responses: ['Tenho interesse!', 'Posso pegar']
+}
 ```
 
-### Configurações Adicionais
+---
+
+## ⚙️ Configurações Avançadas
+
+### 🚫 Blacklist - Ignorar Mensagens Indesejadas
+
+Configure palavras ou frases para que o bot NÃO responda, mesmo se houver um trigger:
+
+```javascript
+blacklist: [
+  'oferta imperdível',
+  'clique aqui',
+  'ganhe dinheiro',
+  'cadastre-se',
+  'promoção relâmpago',
+  'inscreva-se',
+  'bot:',
+  'sistema automático'
+]
+```
+
+**Como funciona:**
+- Se uma mensagem contém qualquer palavra da blacklist, o bot ignora
+- Útil para evitar spam, propagandas e mensagens de outros bots
+- Exemplo: "Oi! Clique aqui para ganhar dinheiro" → Bot NÃO responde (tem "clique aqui")
+
+### ⏱️ Delays Aleatórios - Parecer Humano
+
+Configure quanto tempo o bot espera antes de responder:
+
+```javascript
+settings: {
+  delayRange: {
+    min: 10,   // Mínimo: 10 segundos
+    max: 20    // Máximo: 20 segundos
+  }
+}
+```
+
+**Como funciona:**
+- Bot espera um tempo aleatório entre min e max
+- Torna as respostas mais naturais e humanas
+- Evita detecção como bot automatizado
+
+**Exemplos de configuração:**
+- Resposta rápida: `min: 2, max: 5` (2-5 segundos)
+- Resposta normal: `min: 10, max: 20` (10-20 segundos)
+- Resposta lenta: `min: 30, max: 60` (30-60 segundos)
+
+### 🎛️ Configurações Gerais
 
 No arquivo [config.js](config.js), você também pode ajustar:
 
@@ -178,11 +326,50 @@ settings: {
   respondToGroups: true,      // true = responde em grupos | false = não responde
   respondToPrivate: true,      // true = responde em privado | false = não responde
   caseSensitive: false,        // false = ignora maiúsculas/minúsculas
-  matchWholeWord: false        // false = procura palavra dentro do texto
+  matchWholeWord: false,       // false = procura palavra dentro do texto
+  delayRange: {
+    min: 10,                   // Delay mínimo em segundos
+    max: 20                    // Delay máximo em segundos
+  }
 }
 ```
 
-**Dica:** Use `false` em `matchWholeWord` para respostas mais flexíveis!
+**Explicação de cada opção:**
+
+| Opção | `true` | `false` |
+|-------|--------|---------|
+| `respondToGroups` | Responde em grupos | Ignora grupos |
+| `respondToPrivate` | Responde no privado | Ignora privado |
+| `caseSensitive` | Diferencia maiúsculas | Ignora maiúsculas |
+| `matchWholeWord` | Busca palavra exata | Busca parte da palavra |
+
+**Exemplos práticos:**
+
+```javascript
+// Apenas grupos (não responde privado)
+settings: {
+  respondToGroups: true,
+  respondToPrivate: false
+}
+
+// Apenas privado (não responde grupos)
+settings: {
+  respondToGroups: false,
+  respondToPrivate: true
+}
+
+// Busca exata (apenas "oi", não "oito" ou "coisa")
+settings: {
+  matchWholeWord: true
+}
+
+// Diferencia maiúsculas (OI ≠ oi ≠ Oi)
+settings: {
+  caseSensitive: true
+}
+```
+
+**Dica:** Use `matchWholeWord: false` para respostas mais flexíveis!
 
 ---
 
@@ -257,21 +444,40 @@ Após executar o comando, você verá mensagens como:
 
 ## 📊 Bot em Funcionamento
 
-Quando o bot estiver rodando, você verá logs das mensagens:
+Quando o bot estiver rodando, você verá logs detalhados das mensagens:
 
 ```
-📩 Mensagem de João Silva (Privado): "oi"
-🤖 Respondendo: "Olá! Como posso ajudar? 😊"
+────────────────────────────────────────
+📅 14/02/2026 15:30:45
+📩 Grupo Trabalho (Grupo): "oi pessoal"
+🎯 Resposta escolhida: "Olá! Tudo bem?"
+⏳ Aguardando 15s antes de responder...
+✅ Resposta enviada!
+────────────────────────────────────────
 
-📩 Mensagem de Grupo Família (Grupo): "qual o horário?"
-🤖 Respondendo: "Nosso horário de atendimento é:..."
+────────────────────────────────────────
+📅 14/02/2026 15:31:12
+📩 Privado: "qual o horário?"
+🎯 Resposta escolhida: "Nosso horário de atendimento é:..."
+⏳ Aguardando 12s antes de responder...
+✅ Resposta enviada!
+────────────────────────────────────────
 ```
+
+**O que significam os logs:**
+- 📅 **Data/Hora**: Timestamp de quando a mensagem foi recebida
+- 📩 **Origem**: Nome do grupo ou "Privado" para mensagens diretas
+- 🎯 **Resposta**: Qual resposta foi escolhida (em caso de múltiplas)
+- ⏳ **Delay**: Tempo que o bot vai esperar antes de responder
+- ✅ **Confirmação**: Resposta enviada com sucesso
 
 ### Testando o Bot
 
 1. Envie uma mensagem para você mesmo com uma palavra-gatilho (ex: "oi")
-2. O bot deve responder automaticamente
-3. Teste em grupos e conversas privadas!
+2. Observe o log no terminal mostrando o delay
+3. Aguarde o tempo indicado
+4. O bot responderá automaticamente
+5. Teste em grupos e conversas privadas!
 
 ---
 
@@ -323,6 +529,24 @@ npm install
 2. **Palavra-gatilho incorreta** → Verifique o arquivo [config.js](config.js)
 3. **Configurações erradas** → Verifique `respondToGroups` e `respondToPrivate`
 4. **Responder próprias mensagens** → Bot nunca responde mensagens enviadas por você
+5. **Mensagem na blacklist** → Verifique se a mensagem contém palavras da blacklist
+6. **Delay muito longo** → Aguarde o tempo configurado em `delayRange`
+
+### ❌ Bot responde a spam ou mensagens indesejadas
+
+**Problema:** Bot está respondendo propagandas, ofertas, etc.
+
+**Solução:**
+1. Abra o arquivo [config.js](config.js)
+2. Adicione palavras-chave à `blacklist`:
+```javascript
+blacklist: [
+  'palavra indesejada',
+  'spam',
+  'promoção'
+]
+```
+3. Salve o arquivo e reinicie o bot
 
 ### ❌ "Puppeteer error" ou "chromium"
 
@@ -403,6 +627,114 @@ Consulte a documentação oficial: https://docs.wwebjs.dev/
 
 ---
 
+## 💡 Exemplos Práticos Completos
+
+### Exemplo 1: Atendimento ao Cliente
+
+```javascript
+autoReplies: [
+  // Saudações variadas
+  {
+    triggers: ['oi', 'olá', 'ola', 'hey', 'bom dia', 'boa tarde', 'boa noite'],
+    responses: [
+      'Olá! Como posso ajudar? 😊',
+      'Oi! Seja bem-vindo!',
+      'Hey! Em que posso ajudar você hoje?'
+    ]
+  },
+  // Horário
+  {
+    triggers: ['horário', 'horario', 'aberto', 'funciona', 'atendimento'],
+    response: '🕐 Horários de Atendimento:\n📅 Seg-Sex: 9h às 18h\n📅 Sábado: 9h às 13h\n📅 Domingo: Fechado'
+  },
+  // Contato
+  {
+    triggers: ['contato', 'telefone', 'email', 'falar'],
+    response: '📞 Contatos:\nTelefone: (11) 99999-9999\nEmail: contato@exemplo.com'
+  }
+],
+blacklist: [
+  'spam', 'clique aqui', 'ganhe dinheiro'
+],
+settings: {
+  respondToGroups: true,
+  respondToPrivate: true,
+  caseSensitive: false,
+  matchWholeWord: false,
+  delayRange: { min: 5, max: 15 }
+}
+```
+
+### Exemplo 2: Grupo de Trabalho (Detectar Palavras Múltiplas)
+
+```javascript
+autoReplies: [
+  // Detectar quando alguém oferece ajuda
+  {
+    triggers: [
+      ['alguém', 'pode'],
+      ['alguem', 'pode']
+    ],
+    requireAll: true,
+    responses: ['Eu posso!', 'Posso ajudar!', 'Conte comigo!']
+  },
+  // Detectar disponibilidade
+  {
+    triggers: [
+      ['alguém', 'disponível'],
+      ['alguem', 'disponivel']
+    ],
+    requireAll: true,
+    responses: ['Estou disponível!', 'Eu estou!']
+  }
+],
+blacklist: [],
+settings: {
+  respondToGroups: true,
+  respondToPrivate: false,  // Apenas grupos
+  caseSensitive: false,
+  matchWholeWord: false,
+  delayRange: { min: 10, max: 25 }
+}
+```
+
+### Exemplo 3: Expressões Regulares (Avançado)
+
+```javascript
+autoReplies: [
+  // Detectar horários (ex: "às 14h", "14h30")
+  {
+    triggers: [
+      ['disponível', '\\b\\d{1,2}h'],
+      ['disponivel', '\\b\\d{1,2}h']
+    ],
+    requireAll: true,
+    isRegex: true,
+    responses: ['Eu posso nesse horário!', 'Posso pegar!']
+  },
+  // Detectar datas (ex: "dia 15", "15/02")
+  {
+    triggers: [
+      ['alguém', '\\b\\d{1,2}/\\d{1,2}'],
+      ['alguem', '\\b\\d{1,2}/\\d{1,2}']
+    ],
+    requireAll: true,
+    isRegex: true,
+    responses: ['Posso nesse dia!', 'Eu posso!']
+  }
+],
+blacklist: ['ofereço', 'passo', 'vendo'],
+settings: {
+  respondToGroups: true,
+  respondToPrivate: false,
+  caseSensitive: false,
+  matchWholeWord: false,
+  delayRange: { min: 15, max: 30 }
+}
+```
+
+---
+
 ## 🤝 Contribuindo
 
 Sinta-se à vontade para:
@@ -443,8 +775,12 @@ MIT License - Veja o arquivo LICENSE para mais detalhes
 Seu bot está funcionando! Agora você pode:
 
 ✅ Responder mensagens automaticamente  
-✅ Configurar respostas personalizadas  
+✅ Configurar respostas personalizadas e múltiplas  
+✅ Usar delays aleatórios para parecer humano  
+✅ Criar triggers avançados com regex  
+✅ Bloquear spam com blacklist  
 ✅ Usar em grupos e conversas privadas  
-✅ Automatizar seu WhatsApp  
+✅ Acompanhar tudo com logs detalhados  
+✅ Automatizar seu WhatsApp de forma inteligente  
 
 **Divirta-se! 🚀**
