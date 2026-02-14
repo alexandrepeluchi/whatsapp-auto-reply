@@ -171,9 +171,9 @@ client.on('message', async (message) => {
         // Não responder mensagens próprias
         if (message.fromMe) return;
 
-        // Verificar blacklist PRIMEIRO (mensagens de oferta)
+        // Verificar blacklist PRIMEIRO (spam, propagandas, etc)
         if (isBlacklisted(message.body)) {
-            return; // Não responder se for oferta de plantão
+            return; // Não responder mensagens da blacklist
         }
 
         // Verificar gatilhos (antes de fazer operações pesadas)
