@@ -21,11 +21,16 @@ module.exports = {
   ],
 
   // Lista de padrões para ignorar (blacklist)
+  // Mensagens contendo essas palavras não serão respondidas pelo bot
   blacklist: [
-    'ofereço',
-    'ofereço plantão',
-    'vendo plantão',
-    'passo plantão'
+    'oferta imperdível',
+    'clique aqui',
+    'ganhe dinheiro',
+    'cadastre-se',
+    'promoção relâmpago',
+    'inscreva-se',
+    'bot:',
+    'sistema automático'
   ],
 
   // Configurações gerais
