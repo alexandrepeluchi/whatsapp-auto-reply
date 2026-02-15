@@ -1,4 +1,4 @@
-# 🤖 WhatsApp Bot Local - Respostas Automáticas Inteligentes
+# 🤖 WhatsApp Auto Reply - Respostas Automáticas Inteligentes
 
 Bot automatizado para WhatsApp com respostas naturais e humanizadas. Suporta respostas múltiplas, delays aleatórios, regex e blacklist anti-spam.
 
@@ -141,10 +141,10 @@ Se você ainda não tem o projeto:
 
 ```bash
 # Clone o repositório (ou baixe o ZIP e extraia)
-git clone https://github.com/SEU-USUARIO/whatsapp-local-bot.git
+git clone https://github.com/SEU-USUARIO/whatsapp-auto-reply.git
 
 # Entre na pasta do projeto
-cd whatsapp-local-bot
+cd whatsapp-auto-reply
 ```
 
 ### Passo 2: Instalar Dependências
@@ -578,7 +578,7 @@ Se tiver problemas de conexão:
 ## 📁 Estrutura de Arquivos
 
 ```
-whatsapp-local-bot/
+whatsapp-auto-reply/
 │
 ├── bot.js              # Código principal do bot
 ├── config.js           # Configurações e respostas automáticas

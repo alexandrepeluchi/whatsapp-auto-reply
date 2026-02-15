@@ -1,5 +1,5 @@
 {
-  "name": "whatsapp-local-bot",
+  "name": "whatsapp-auto-reply",
   "version": "1.0.0",
   "description": "Bot do WhatsApp que responde automaticamente baseado em palavras-chave",
   "main": "bot.js",
