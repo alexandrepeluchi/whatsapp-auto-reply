@@ -42,9 +42,9 @@ client.on('ready', () => {
     console.log('✅ Bot conectado com sucesso!');
     console.log('🟢 Bot está rodando e pronto para responder mensagens...\n');
     console.log('📊 Configurações ativas:');
-    console.log(`   - Responder em grupos: ${config.settings.respondToGroups ? 'SIM' : 'NÃO'}`);
-    console.log(`   - Responder em privado: ${config.settings.respondToPrivate ? 'SIM' : 'NÃO'}`);
-    console.log(`   - Total de gatilhos: ${config.autoReplies.length}\n`);
+    console.log(`   - Responder em grupos: ${config.configuracoes.responderEmGrupos ? 'SIM' : 'NÃO'}`);
+    console.log(`   - Responder em privado: ${config.configuracoes.responderEmPrivado ? 'SIM' : 'NÃO'}`);
+    console.log(`   - Total de gatilhos: ${config.respostasAutomaticas.length}\n`);
 });
 
 // Evento: Autenticação bem-sucedida
@@ -66,12 +66,12 @@ client.on('disconnected', (reason) => {
 
 // Função para verificar se a mensagem contém algum gatilho
 function checkTriggers(message) {
-    const messageText = config.settings.caseSensitive 
+    const messageText = config.configuracoes.diferenciarMaiusculas 
         ? message 
         : message.toLowerCase();
 
-    for (const autoReply of config.autoReplies) {
-        for (const trigger of autoReply.triggers) {
+    for (const autoReply of config.respostasAutomaticas) {
+        for (const trigger of autoReply.gatilhos) {
             let match = false;
             
             // Se requireAll é true, trigger é um array de palavras
@@ -81,7 +81,7 @@ function checkTriggers(message) {
                     // Se tem isRegex, tratar como expressão regular
                     if (autoReply.isRegex && word.includes('\\')) {
                         try {
-                            const regex = new RegExp(word, config.settings.caseSensitive ? '' : 'i');
+                            const regex = new RegExp(word, config.configuracoes.diferenciarMaiusculas ? '' : 'i');
                             return regex.test(messageText);
                         } catch (e) {
                             console.error(`❌ Erro no regex "${word}":`, e.message);
@@ -90,9 +90,9 @@ function checkTriggers(message) {
                     }
                     
                     // Senão, busca normal por palavra
-                    const wordToFind = config.settings.caseSensitive ? word : word.toLowerCase();
+                    const wordToFind = config.configuracoes.diferenciarMaiusculas ? word : word.toLowerCase();
                     
-                    if (config.settings.matchWholeWord) {
+                    if (config.configuracoes.palavraInteira) {
                         // Verificar palavra completa
                         const regex = new RegExp(`\\b${wordToFind}\\b`, 'i');
                         return regex.test(messageText);
@@ -103,11 +103,11 @@ function checkTriggers(message) {
                 });
             } else {
                 // Modo antigo: busca por string completa
-                const triggerText = config.settings.caseSensitive 
+                const triggerText = config.configuracoes.diferenciarMaiusculas 
                     ? trigger 
                     : trigger.toLowerCase();
 
-                if (config.settings.matchWholeWord) {
+                if (config.configuracoes.palavraInteira) {
                     const regex = new RegExp(`\\b${triggerText}\\b`, 'i');
                     match = regex.test(messageText);
                 } else {
@@ -117,12 +117,12 @@ function checkTriggers(message) {
 
             if (match) {
                 // Se há múltiplas respostas, escolher uma aleatória
-                if (Array.isArray(autoReply.responses)) {
-                    const randomIndex = Math.floor(Math.random() * autoReply.responses.length);
-                    return autoReply.responses[randomIndex];
+                if (Array.isArray(autoReply.respostas)) {
+                    const randomIndex = Math.floor(Math.random() * autoReply.respostas.length);
+                    return autoReply.respostas[randomIndex];
                 }
-                // Compatibilidade com response única (deprecated)
-                return autoReply.response || autoReply.responses;
+                // Compatibilidade com resposta única (deprecated)
+                return autoReply.resposta || autoReply.respostas;
             }
         }
     }
@@ -156,7 +156,7 @@ function getFormattedTimestamp() {
 function isBlacklisted(message) {
     const messageText = message.toLowerCase();
     
-    for (const blacklistPattern of config.blacklist) {
+    for (const blacklistPattern of config.listaNegra) {
         if (messageText.includes(blacklistPattern.toLowerCase())) {
             return true;
         }
@@ -191,7 +191,7 @@ client.on('message', async (message) => {
             ]);
         } catch (chatError) {
             // Delay aleatório configurável
-            const delay = getRandomDelay(config.settings.delayRange.min, config.settings.delayRange.max);
+            const delay = getRandomDelay(config.configuracoes.intervaloAtraso.minimo, config.configuracoes.intervaloAtraso.maximo);
             const timestamp = getFormattedTimestamp();
             
             console.log('\n────────────────────────────────────────');
@@ -212,11 +212,11 @@ client.on('message', async (message) => {
         const isGroup = chat.isGroup;
         
         // Verificar se deve responder baseado no tipo de chat
-        if (isGroup && !config.settings.respondToGroups) return;
-        if (!isGroup && !config.settings.respondToPrivate) return;
+        if (isGroup && !config.configuracoes.responderEmGrupos) return;
+        if (!isGroup && !config.configuracoes.responderEmPrivado) return;
         
         // Delay aleatório configurável
-        const delay = getRandomDelay(config.settings.delayRange.min, config.settings.delayRange.max);
+        const delay = getRandomDelay(config.configuracoes.intervaloAtraso.minimo, config.configuracoes.intervaloAtraso.maximo);
         const chatName = isGroup ? chat.name : 'Privado';
         const timestamp = getFormattedTimestamp();
         
@@ -241,7 +241,7 @@ client.on('message', async (message) => {
         try {
             const response = checkTriggers(message.body);
             if (response) {
-                const delay = getRandomDelay(config.settings.delayRange.min, config.settings.delayRange.max);
+                const delay = getRandomDelay(config.configuracoes.intervaloAtraso.minimo, config.configuracoes.intervaloAtraso.maximo);
                 const timestamp = getFormattedTimestamp();
                 
                 console.log('\n────────────────────────────────────────');
