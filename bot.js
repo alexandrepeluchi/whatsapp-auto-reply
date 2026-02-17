@@ -1,11 +1,11 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const config = require('./config');
+const geradorQRCode = require('qrcode-terminal');
+const configuracao = require('./config');
 
 console.log('🤖 Iniciando WhatsApp Bot...\n');
 
 // Cria o cliente do WhatsApp com autenticação local
-const client = new Client({
+const cliente = new Client({
     authStrategy: new LocalAuth({
         dataPath: '.wwebjs_auth'
     }),
@@ -26,10 +26,10 @@ const client = new Client({
 });
 
 // Evento: Gera o QR Code para escanear
-client.on('qr', (qr) => {
+cliente.on('qr', (codigoQR) => {
     console.log('📱 QR CODE GERADO!');
     console.log('👉 Escaneie o código abaixo com seu WhatsApp:\n');
-    qrcode.generate(qr, { small: true });
+    geradorQRCode.generate(codigoQR, { small: true });
     console.log('\n⚠️  Para escanear:');
     console.log('   1. Abra o WhatsApp no seu celular');
     console.log('   2. Toque em Menu (⋮) > Aparelhos conectados');
@@ -38,91 +38,91 @@ client.on('qr', (qr) => {
 });
 
 // Evento: Cliente está pronto e conectado
-client.on('ready', () => {
+cliente.on('ready', () => {
     console.log('✅ Bot conectado com sucesso!');
     console.log('🟢 Bot está rodando e pronto para responder mensagens...\n');
     console.log('📊 Configurações ativas:');
-    console.log(`   - Responder em grupos: ${config.settings.respondToGroups ? 'SIM' : 'NÃO'}`);
-    console.log(`   - Responder em privado: ${config.settings.respondToPrivate ? 'SIM' : 'NÃO'}`);
-    console.log(`   - Total de gatilhos: ${config.autoReplies.length}\n`);
+    console.log(`   - Responder em grupos: ${configuracao.configuracoes.responderEmGrupos ? 'SIM' : 'NÃO'}`);
+    console.log(`   - Responder em privado: ${configuracao.configuracoes.responderEmPrivado ? 'SIM' : 'NÃO'}`);
+    console.log(`   - Total de gatilhos: ${configuracao.respostasAutomaticas.length}\n`);
 });
 
 // Evento: Autenticação bem-sucedida
-client.on('authenticated', () => {
+cliente.on('authenticated', () => {
     console.log('🔐 Autenticação realizada com sucesso!');
 });
 
 // Evento: Falha na autenticação
-client.on('auth_failure', (msg) => {
+cliente.on('auth_failure', (msg) => {
     console.error('❌ Falha na autenticação:', msg);
     console.log('💡 Tente deletar a pasta .wwebjs_auth e escanear o QR Code novamente.');
 });
 
 // Evento: Cliente desconectado
-client.on('disconnected', (reason) => {
+cliente.on('disconnected', (reason) => {
     console.log('⚠️  Cliente desconectado:', reason);
     console.log('🔄 Tentando reconectar...');
 });
 
 // Função para verificar se a mensagem contém algum gatilho
-function checkTriggers(message) {
-    const messageText = config.settings.caseSensitive 
-        ? message 
-        : message.toLowerCase();
+function verificarGatilhos(mensagem) {
+    const textoMensagem = configuracao.configuracoes.diferenciarMaiusculas 
+        ? mensagem 
+        : mensagem.toLowerCase();
 
-    for (const autoReply of config.autoReplies) {
-        for (const trigger of autoReply.triggers) {
-            let match = false;
+    for (const respostaAutomatica of configuracao.respostasAutomaticas) {
+        for (const gatilho of respostaAutomatica.gatilhos) {
+            let encontrou = false;
             
-            // Se requireAll é true, trigger é um array de palavras
-            if (autoReply.requireAll && Array.isArray(trigger)) {
-                // Verificar se TODAS as palavras/padrões do trigger estão na mensagem
-                match = trigger.every(word => {
+            // Se requireAll é true, gatilho é um array de palavras
+            if (respostaAutomatica.requireAll && Array.isArray(gatilho)) {
+                // Verificar se TODAS as palavras/padrões do gatilho estão na mensagem
+                encontrou = gatilho.every(palavra => {
                     // Se tem isRegex, tratar como expressão regular
-                    if (autoReply.isRegex && word.includes('\\')) {
+                    if (respostaAutomatica.isRegex && palavra.includes('\\')) {
                         try {
-                            const regex = new RegExp(word, config.settings.caseSensitive ? '' : 'i');
-                            return regex.test(messageText);
+                            const regex = new RegExp(palavra, configuracao.configuracoes.diferenciarMaiusculas ? '' : 'i');
+                            return regex.test(textoMensagem);
                         } catch (e) {
-                            console.error(`❌ Erro no regex "${word}":`, e.message);
+                            console.error(`❌ Erro no regex "${palavra}":`, e.message);
                             return false;
                         }
                     }
                     
                     // Senão, busca normal por palavra
-                    const wordToFind = config.settings.caseSensitive ? word : word.toLowerCase();
+                    const palavraParaProcurar = configuracao.configuracoes.diferenciarMaiusculas ? palavra : palavra.toLowerCase();
                     
-                    if (config.settings.matchWholeWord) {
+                    if (configuracao.configuracoes.palavraInteira) {
                         // Verificar palavra completa
-                        const regex = new RegExp(`\\b${wordToFind}\\b`, 'i');
-                        return regex.test(messageText);
+                        const regex = new RegExp(`\\b${palavraParaProcurar}\\b`, 'i');
+                        return regex.test(textoMensagem);
                     } else {
                         // Verificar se contém a palavra
-                        return messageText.includes(wordToFind);
+                        return textoMensagem.includes(palavraParaProcurar);
                     }
                 });
             } else {
                 // Modo antigo: busca por string completa
-                const triggerText = config.settings.caseSensitive 
-                    ? trigger 
-                    : trigger.toLowerCase();
+                const gatilhoTexto = configuracao.configuracoes.diferenciarMaiusculas 
+                    ? gatilho 
+                    : gatilho.toLowerCase();
 
-                if (config.settings.matchWholeWord) {
-                    const regex = new RegExp(`\\b${triggerText}\\b`, 'i');
-                    match = regex.test(messageText);
+                if (configuracao.configuracoes.palavraInteira) {
+                    const regex = new RegExp(`\\b${gatilhoTexto}\\b`, 'i');
+                    encontrou = regex.test(textoMensagem);
                 } else {
-                    match = messageText.includes(triggerText);
+                    encontrou = textoMensagem.includes(gatilhoTexto);
                 }
             }
 
-            if (match) {
+            if (encontrou) {
                 // Se há múltiplas respostas, escolher uma aleatória
-                if (Array.isArray(autoReply.responses)) {
-                    const randomIndex = Math.floor(Math.random() * autoReply.responses.length);
-                    return autoReply.responses[randomIndex];
+                if (Array.isArray(respostaAutomatica.respostas)) {
+                    const indiceAleatorio = Math.floor(Math.random() * respostaAutomatica.respostas.length);
+                    return respostaAutomatica.respostas[indiceAleatorio];
                 }
-                // Compatibilidade com response única (deprecated)
-                return autoReply.response || autoReply.responses;
+                // Compatibilidade com resposta única (deprecated)
+                return respostaAutomatica.resposta || respostaAutomatica.respostas;
             }
         }
     }
@@ -131,16 +131,16 @@ function checkTriggers(message) {
 }
 
 // Função para gerar delay aleatório
-function getRandomDelay(min, max) {
+function obterAtrasoAleatorio(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min) * 1000;
 }
 
-function sleep(ms) {
+function aguardar(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Função para formatar data e hora
-function getFormattedTimestamp() {
+function obterTimestampFormatado() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -153,11 +153,11 @@ function getFormattedTimestamp() {
 }
 
 // Função para verificar se a mensagem está na blacklist
-function isBlacklisted(message) {
-    const messageText = message.toLowerCase();
+function estaNaListaNegra(mensagem) {
+    const textoMensagem = mensagem.toLowerCase();
     
-    for (const blacklistPattern of config.blacklist) {
-        if (messageText.includes(blacklistPattern.toLowerCase())) {
+    for (const padraoListaNegra of configuracao.listaNegra) {
+        if (textoMensagem.includes(padraoListaNegra.toLowerCase())) {
             return true;
         }
     }
@@ -166,72 +166,72 @@ function isBlacklisted(message) {
 }
 
 // Evento: Nova mensagem recebida
-client.on('message', async (message) => {
+cliente.on('message', async (mensagem) => {
     try {
         // Não responder mensagens próprias
-        if (message.fromMe) return;
+        if (mensagem.fromMe) return;
 
         // Verificar blacklist PRIMEIRO (spam, propagandas, etc)
-        if (isBlacklisted(message.body)) {
-            return; // Não responder mensagens da blacklist
+        if (estaNaListaNegra(mensagem.body)) {
+            return; // Não responder mensagens da lista negra
         }
 
         // Verificar gatilhos (antes de fazer operações pesadas)
-        const response = checkTriggers(message.body);
-        if (!response) return; // Se não há resposta, não precisa continuar
+        const resposta = verificarGatilhos(mensagem.body);
+        if (!resposta) return; // Se não há resposta, não precisa continuar
         
         // Obter informações do chat com timeout
-        let chat;
+        let conversa;
         try {
-            chat = await Promise.race([
-                message.getChat(),
+            conversa = await Promise.race([
+                mensagem.getChat(),
                 new Promise((_, reject) => 
                     setTimeout(() => reject(new Error('Timeout ao obter chat')), 10000)
                 )
             ]);
-        } catch (chatError) {
-            // Delay aleatório configurável
-            const delay = getRandomDelay(config.settings.delayRange.min, config.settings.delayRange.max);
-            const timestamp = getFormattedTimestamp();
+        } catch (erroConversa) {
+            // Atraso aleatório configurável
+            const atraso = obterAtrasoAleatorio(configuracao.configuracoes.intervaloAtraso.minimo, configuracao.configuracoes.intervaloAtraso.maximo);
+            const horario = obterTimestampFormatado();
             
             console.log('\n────────────────────────────────────────');
-            console.log(`📅 ${timestamp}`);
-            console.log(`📩 Mensagem: "${message.body}"`);
-            console.log(`🎯 Resposta escolhida: "${response}"`);
-            console.log(`⏳ Aguardando ${delay / 1000}s antes de responder...`);
+            console.log(`📅 ${horario}`);
+            console.log(`📩 Mensagem: "${mensagem.body}"`);
+            console.log(`🎯 Resposta escolhida: "${resposta}"`);
+            console.log(`⏳ Aguardando ${atraso / 1000}s antes de responder...`);
             
-            await sleep(delay);
+            await aguardar(atraso);
             
-            // Responde mesmo sem conseguir pegar info do chat
-            await message.reply(response);
+            // Responde mesmo sem conseguir pegar info da conversa
+            await mensagem.reply(resposta);
             console.log(`✅ Resposta enviada!`);
             console.log('────────────────────────────────────────');
             return;
         }
         
-        const isGroup = chat.isGroup;
+        const ehGrupo = conversa.isGroup;
         
-        // Verificar se deve responder baseado no tipo de chat
-        if (isGroup && !config.settings.respondToGroups) return;
-        if (!isGroup && !config.settings.respondToPrivate) return;
+        // Verificar se deve responder baseado no tipo de conversa
+        if (ehGrupo && !configuracao.configuracoes.responderEmGrupos) return;
+        if (!ehGrupo && !configuracao.configuracoes.responderEmPrivado) return;
         
-        // Delay aleatório configurável
-        const delay = getRandomDelay(config.settings.delayRange.min, config.settings.delayRange.max);
-        const chatName = isGroup ? chat.name : 'Privado';
-        const timestamp = getFormattedTimestamp();
+        // Atraso aleatório configurável
+        const atraso = obterAtrasoAleatorio(configuracao.configuracoes.intervaloAtraso.minimo, configuracao.configuracoes.intervaloAtraso.maximo);
+        const nomeConversa = ehGrupo ? conversa.name : 'Privado';
+        const horario = obterTimestampFormatado();
         
         // Log completo antes de aguardar (tudo junto, síncrono)
         console.log('\n────────────────────────────────────────');
-        console.log(`📅 ${timestamp}`);
-        console.log(`📩 ${chatName} ${isGroup ? '(Grupo)' : ''}: "${message.body}"`);
-        console.log(`🎯 Resposta escolhida: "${response}"`);
-        console.log(`⏳ Aguardando ${delay / 1000}s antes de responder...`);
+        console.log(`📅 ${horario}`);
+        console.log(`📩 ${nomeConversa} ${ehGrupo ? '(Grupo)' : ''}: "${mensagem.body}"`);
+        console.log(`🎯 Resposta escolhida: "${resposta}"`);
+        console.log(`⏳ Aguardando ${atraso / 1000}s antes de responder...`);
         
         // Aguardar (silenciosamente)
-        await sleep(delay);
+        await aguardar(atraso);
         
         // Enviar resposta
-        await message.reply(response);
+        await mensagem.reply(resposta);
         console.log(`✅ Resposta enviada!`);
         console.log('────────────────────────────────────────');
         
@@ -239,19 +239,19 @@ client.on('message', async (message) => {
         console.error('❌ Erro ao processar mensagem:', error.message || error);
         // Tentar responder mesmo com erro
         try {
-            const response = checkTriggers(message.body);
-            if (response) {
-                const delay = getRandomDelay(config.settings.delayRange.min, config.settings.delayRange.max);
-                const timestamp = getFormattedTimestamp();
+            const resposta = verificarGatilhos(mensagem.body);
+            if (resposta) {
+                const atraso = obterAtrasoAleatorio(configuracao.configuracoes.intervaloAtraso.minimo, configuracao.configuracoes.intervaloAtraso.maximo);
+                const horario = obterTimestampFormatado();
                 
                 console.log('\n────────────────────────────────────────');
-                console.log(`📅 ${timestamp}`);
-                console.log(`📩 Mensagem: "${message.body}"`);
-                console.log(`🎯 Resposta escolhida: "${response}"`);
-                console.log(`⏳ Aguardando ${delay / 1000}s antes de responder...`);
+                console.log(`📅 ${horario}`);
+                console.log(`📩 Mensagem: "${mensagem.body}"`);
+                console.log(`🎯 Resposta escolhida: "${resposta}"`);
+                console.log(`⏳ Aguardando ${atraso / 1000}s antes de responder...`);
                 
-                await sleep(delay);
-                await message.reply(response);
+                await aguardar(atraso);
+                await mensagem.reply(resposta);
                 
                 console.log(`✅ Resposta enviada! (apesar do erro anterior)`);
                 console.log('────────────────────────────────────────');
@@ -268,6 +268,6 @@ process.on('unhandledRejection', (error) => {
 });
 
 // Inicializar o cliente
-client.initialize();
+cliente.initialize();
 
 console.log('⏳ Aguardando conexão...\n');
