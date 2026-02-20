@@ -213,8 +213,10 @@ app.post('/api/config', (req, res) => {
     try {
         const novaConfig = req.body;
         salvarConfiguracoes(novaConfig);
+        console.log('⚙️  Configurações atualizadas via dashboard');
         res.json({ sucesso: true, mensagem: 'Configurações salvas com sucesso!' });
     } catch (erro) {
+        console.error('❌ Erro ao salvar configurações:', erro.message);
         res.status(500).json({ sucesso: false, mensagem: erro.message });
     }
 });
@@ -225,8 +227,10 @@ app.post('/api/respostas', (req, res) => {
         const config = require('./config');
         config.respostasAutomaticas.push(req.body);
         salvarConfiguracoes(config);
+        console.log('➕ Nova resposta automática adicionada via dashboard');
         res.json({ sucesso: true, mensagem: 'Resposta adicionada com sucesso!' });
     } catch (erro) {
+        console.error('❌ Erro ao adicionar resposta:', erro.message);
         res.status(500).json({ sucesso: false, mensagem: erro.message });
     }
 });
@@ -240,6 +244,7 @@ app.put('/api/respostas/:indice', (req, res) => {
         if (indice >= 0 && indice < config.respostasAutomaticas.length) {
             config.respostasAutomaticas[indice] = req.body;
             salvarConfiguracoes(config);
+            console.log(`✏️  Resposta automática #${indice} atualizada via dashboard`);
             res.json({ sucesso: true, mensagem: 'Resposta atualizada com sucesso!' });
         } else {
             res.status(404).json({ sucesso: false, mensagem: 'Resposta não encontrada' });
@@ -258,6 +263,7 @@ app.delete('/api/respostas/:indice', (req, res) => {
         if (indice >= 0 && indice < config.respostasAutomaticas.length) {
             config.respostasAutomaticas.splice(indice, 1);
             salvarConfiguracoes(config);
+            console.log(`🗑️  Resposta automática #${indice} removida via dashboard`);
             res.json({ sucesso: true, mensagem: 'Resposta removida com sucesso!' });
         } else {
             res.status(404).json({ sucesso: false, mensagem: 'Resposta não encontrada' });
@@ -275,14 +281,17 @@ app.get('/api/historico', (req, res) => {
 // Rota: Limpar histórico
 app.delete('/api/historico', (req, res) => {
     historicoMensagens = [];
+    console.log('🧹 Histórico de mensagens limpo via dashboard');
     res.json({ sucesso: true, mensagem: 'Histórico limpo com sucesso!' });
 });
 
 // Rota: Iniciar bot
 app.post('/api/bot/iniciar', (req, res) => {
     if (cliente && statusBot !== 'desconectado') {
+        console.log('⚠️  Bot já está em execução');
         res.json({ sucesso: false, mensagem: 'Bot já está em execução' });
     } else {
+        console.log('▶️  Iniciando bot via dashboard...');
         inicializarBot();
         res.json({ sucesso: true, mensagem: 'Bot iniciado com sucesso!' });
     }
@@ -291,11 +300,15 @@ app.post('/api/bot/iniciar', (req, res) => {
 // Rota: Parar bot
 app.post('/api/bot/parar', async (req, res) => {
     if (cliente) {
+        console.log('🛑 Parando o bot...');
         await cliente.destroy();
         cliente = null;
         statusBot = 'desconectado';
+        io.emit('status', statusBot);
+        console.log('✅ Bot parado com sucesso!');
         res.json({ sucesso: true, mensagem: 'Bot parado com sucesso!' });
     } else {
+        console.log('⚠️  Tentativa de parar bot que não está em execução');
         res.json({ sucesso: false, mensagem: 'Bot não está em execução' });
     }
 });
