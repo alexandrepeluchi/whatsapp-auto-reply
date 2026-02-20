@@ -64,6 +64,9 @@ const elements = {
 };
 
 // ==================== WEBSOCKET ====================
+let statusTimeoutId = null;
+let proximoStatus = null;
+
 function inicializarWebSocket() {
     socket = io(API_URL);
     
@@ -72,6 +75,12 @@ function inicializarWebSocket() {
     });
     
     socket.on('status', (status) => {
+        // Se houver um delay em andamento para status "autenticado"
+        if (statusTimeoutId && status !== 'autenticado') {
+            proximoStatus = status;
+            return;
+        }
+        
         atualizarStatus(status);
     });
     
@@ -106,6 +115,19 @@ function atualizarStatus(status) {
     const statusInfo = statusMap[status] || statusMap['desconectado'];
     elements.statusText.textContent = statusInfo.text;
     elements.statusDot.className = 'status-dot ' + statusInfo.class;
+    
+    // Se o status for "autenticado", adiciona um delay antes de aceitar novos status
+    if (status === 'autenticado') {
+        statusTimeoutId = setTimeout(() => {
+            statusTimeoutId = null;
+            // Se houver um próximo status na fila, atualiza agora
+            if (proximoStatus) {
+                const statusParaAtualizar = proximoStatus;
+                proximoStatus = null;
+                atualizarStatus(statusParaAtualizar);
+            }
+        }, 2000); // 2 segundos de delay
+    }
 }
 
 // ==================== FUNÇÕES DE API ====================

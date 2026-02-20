@@ -27,6 +27,7 @@ let cliente = null;
 let statusBot = 'desconectado';
 let historicoMensagens = [];
 let qrCodeAtual = null;
+let mensagensEnviadasRecentemente = new Set(); // Para evitar loops
 
 // Função para salvar configurações no arquivo
 function salvarConfiguracoes(novaConfig) {
@@ -83,7 +84,14 @@ function inicializarBot() {
 
     // Evento: Cliente pronto
     cliente.on('ready', () => {
+        const config = require('./config');
         console.log('✅ Bot conectado com sucesso!');
+        console.log('🎯 Listener de mensagens registrado e ativo (capturando TODAS as mensagens)!');
+        console.log('📊 Configurações ativas:');
+        console.log(`   - Responder em grupos: ${config.configuracoes.responderEmGrupos ? 'SIM' : 'NÃO'}`);
+        console.log(`   - Responder em privado: ${config.configuracoes.responderEmPrivado ? 'SIM' : 'NÃO'}`);
+        console.log(`   - Responder próprias mensagens: ${config.configuracoes.responderPropriasMensagens ? 'SIM' : 'NÃO'}`);
+        console.log(`   - Total de gatilhos: ${config.respostasAutomaticas.length}\n`);
         statusBot = 'conectado';
         qrCodeAtual = null;
         io.emit('status', statusBot);
@@ -112,16 +120,44 @@ function inicializarBot() {
         io.emit('status', statusBot);
     });
 
-    // Evento: Mensagem recebida
-    cliente.on('message', async (mensagem) => {
+    // Evento: Mensagem recebida (message_create captura TODAS as mensagens, inclusive as suas)
+    cliente.on('message_create', async (mensagem) => {
         try {
             const config = require('./config');
             const chat = await mensagem.getChat();
             const ehGrupo = chat.isGroup;
-            const deveResponder = (ehGrupo && config.configuracoes.responderEmGrupos) || 
-                                 (!ehGrupo && config.configuracoes.responderEmPrivado);
-
-            if (!deveResponder) return;
+            
+            // DEBUG: Log de mensagem recebida
+            console.log(`\n📨 Mensagem recebida: "${mensagem.body}"`);
+            console.log(`   fromMe: ${mensagem.fromMe}`);
+            console.log(`   ehGrupo: ${ehGrupo}`);
+            console.log(`   responderPropriasMensagens: ${config.configuracoes.responderPropriasMensagens}`);
+            
+            // Ignora mensagens que o bot acabou de enviar (evita loops)
+            if (mensagensEnviadasRecentemente.has(mensagem.id._serialized)) {
+                console.log('   ⏭️  Ignorando: mensagem enviada pelo próprio bot');
+                return;
+            }
+            
+            // Verifica se deve ignorar mensagens próprias
+            if (mensagem.fromMe && !config.configuracoes.responderPropriasMensagens) {
+                console.log('   ❌ Ignorando: mensagem própria e config desativada');
+                return; // Ignora mensagens enviadas por você mesmo
+            }
+            
+            // Se for mensagem própria E a config está ativa, pode prosseguir
+            // Senão, verifica as regras normais de grupo/privado
+            if (!mensagem.fromMe) {
+                const deveResponder = (ehGrupo && config.configuracoes.responderEmGrupos) || 
+                                     (!ehGrupo && config.configuracoes.responderEmPrivado);
+                console.log(`   deveResponder (outros): ${deveResponder}`);
+                if (!deveResponder) {
+                    console.log('   ❌ Ignorando: regras de grupo/privado');
+                    return;
+                }
+            } else {
+                console.log('   ✅ Mensagem própria COM config ativa - processando...');
+            }
 
             // Verifica lista negra
             const textoMensagem = mensagem.body.toLowerCase();
@@ -129,9 +165,13 @@ function inicializarBot() {
                 textoMensagem.includes(termo.toLowerCase())
             );
 
-            if (estaListaNegra) return;
+            if (estaListaNegra) {
+                console.log('   ❌ Ignorando: mensagem contém termo da lista negra');
+                return;
+            }
 
             // Procura por gatilhos
+            console.log(`   🔍 Procurando gatilhos em ${config.respostasAutomaticas.length} regra(s)...`);
             for (const item of config.respostasAutomaticas) {
                 const gatilhoEncontrado = item.gatilhos.some(gatilho => {
                     const textoComparacao = config.configuracoes.diferenciarMaiusculas ? 
@@ -148,6 +188,7 @@ function inicializarBot() {
                 });
 
                 if (gatilhoEncontrado) {
+                    console.log(`   ✅ Gatilho encontrado! Preparando resposta...`);
                     // Delay aleatório
                     const delayMin = config.configuracoes.intervaloAtraso.minimo * 1000;
                     const delayMax = config.configuracoes.intervaloAtraso.maximo * 1000;
@@ -158,7 +199,16 @@ function inicializarBot() {
                         const respostas = Array.isArray(item.resposta) ? item.resposta : [item.resposta];
                         const respostaEscolhida = respostas[Math.floor(Math.random() * respostas.length)];
                         
-                        await mensagem.reply(respostaEscolhida);
+                        const mensagemEnviada = await mensagem.reply(respostaEscolhida);
+                        
+                        // Adiciona ID da mensagem enviada ao Set (evita loops)
+                        if (mensagemEnviada && mensagemEnviada.id) {
+                            mensagensEnviadasRecentemente.add(mensagemEnviada.id._serialized);
+                            // Remove após 10 segundos
+                            setTimeout(() => {
+                                mensagensEnviadasRecentemente.delete(mensagemEnviada.id._serialized);
+                            }, 10000);
+                        }
                         
                         // Adiciona ao histórico
                         const registro = {
@@ -181,6 +231,8 @@ function inicializarBot() {
                     break;
                 }
             }
+            
+            console.log('   ℹ️  Processamento da mensagem concluído.\n');
         } catch (erro) {
             console.error('❌ Erro ao processar mensagem:', erro);
         }
