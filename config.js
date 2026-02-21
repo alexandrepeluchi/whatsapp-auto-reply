@@ -2,25 +2,21 @@
 module.exports = {   // Lista de palavras-chave e suas respostas (nomes em português)
   respostasAutomaticas: [
     {
-      gatilhos: ['testing'],
+      gatilhos: ['oi', 'olá', 'ola', 'hey'],
       resposta: 'Olá! Como posso ajudar? 😊'
+    },
+    {
+      gatilhos: ['tudo bem', 'como vai', 'td bem'],
+      resposta: 'Tudo ótimo! E você? 👍'
+    },
+    {
+      gatilhos: ['preço', 'preco', 'quanto custa'],
+      resposta: 'Para informações sobre preços, por favor entre em contato pelo telefone (XX) XXXXX-XXXX ou email@exemplo.com'
+    },
+    {
+      gatilhos: ['horário', 'horario', 'funciona'],
+      resposta: 'Nosso horário de atendimento é:\n📅 Segunda a Sexta: 9h às 18h\n📅 Sábado: 9h às 13h'
     }
-    // {
-    //   gatilhos: ['oi', 'olá', 'ola', 'hey'],
-    //   resposta: 'Olá! Como posso ajudar? 😊'
-    // },
-    // {
-    //   gatilhos: ['tudo bem', 'como vai', 'td bem'],
-    //   resposta: 'Tudo ótimo! E você? 👍'
-    // },
-    // {
-    //   gatilhos: ['preço', 'preco', 'quanto custa'],
-    //   resposta: 'Para informações sobre preços, por favor entre em contato pelo telefone (XX) XXXXX-XXXX ou email@exemplo.com'
-    // },
-    // {
-    //   gatilhos: ['horário', 'horario', 'funciona'],
-    //   resposta: 'Nosso horário de atendimento é:\n📅 Segunda a Sexta: 9h às 18h\n📅 Sábado: 9h às 13h'
-    // }
   ],
 
   // Lista de padrões para ignorar (lista negra)
