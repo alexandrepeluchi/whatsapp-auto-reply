@@ -166,6 +166,11 @@ body {
     flex: 1;
 }
 
+.card-header .btn {
+    min-width: 180px;
+    justify-content: center;
+}
+
 .card-body {
     padding: 20px;
 }
@@ -183,6 +188,10 @@ body {
     display: flex;
     gap: 12px;
     margin-bottom: 24px;
+}
+
+.bot-controls .btn {
+    flex: 1;
 }
 
 .stats-grid {
@@ -261,13 +270,11 @@ body {
 .btn-success {
     background: var(--success);
     color: white;
-    flex: 1;
 }
 
 .btn-danger {
     background: var(--danger);
     color: white;
-    flex: 1;
 }
 
 .btn-block {
@@ -362,6 +369,7 @@ body {
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 14px;
+    min-width: 0;
 }
 
 .input-group span {
@@ -708,6 +716,19 @@ body {
 
     .stats-grid {
         grid-template-columns: 1fr;
+    }
+
+    .delay-config .input-group {
+        gap: 6px;
+    }
+
+    .delay-config .input-group input {
+        padding: 8px 6px;
+        font-size: 13px;
+    }
+
+    .delay-config .input-group span {
+        font-size: 12px;
     }
 
     .resposta-header {

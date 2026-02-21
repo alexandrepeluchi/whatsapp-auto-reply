@@ -38,14 +38,14 @@ module.exports = {   // Lista de palavras-chave e suas respostas (nomes em portu
 
   // Configurações gerais (em português)
   configuracoes: {
-    responderEmGrupos: true,      // Responder em grupos
-    responderEmPrivado: false,     // Responder em conversas privadas
+    responderEmGrupos: true,          // Responder em grupos
+    responderEmPrivado: false,        // Responder em conversas privadas
     responderPropriasMensagens: true, // Responder às suas próprias mensagens
-    diferenciarMaiusculas: false, // Diferenciar maiúsculas/minúsculas
-    palavraInteira: false,        // Exigir palavra completa (true) ou permitir parte da palavra (false)
+    diferenciarMaiusculas: false,     // Diferenciar maiúsculas/minúsculas
+    palavraInteira: false,            // Exigir palavra completa (true) ou permitir parte da palavra (false)
     intervaloAtraso: {
-      minimo: 10,                 // Delay mínimo em segundos antes de responder
-      maximo: 20                  // Delay máximo em segundos antes de responder
+      minimo: 10,                     // Delay mínimo em segundos antes de responder
+      maximo: 20                      // Delay máximo em segundos antes de responder
     }
   }
 };
