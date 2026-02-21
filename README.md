@@ -2,19 +2,67 @@
 
 Bot automatizado para WhatsApp com respostas naturais e humanizadas. Suporta respostas múltiplas, delays aleatórios, regex e blacklist anti-spam.
 
+**✨ NOVO: Agora com Interface Web para Gerenciamento!**
+
 ## 📋 Índice
 
+- [Interface Web Dashboard](#-interface-web-dashboard-novo)
 - [O que é este projeto?](#-o-que-é-este-projeto)
 - [✨ Funcionalidades](#-funcionalidades)
 - [Pré-requisitos](#-pré-requisitos)
 - [Instalação do Node.js](#-instalação-do-nodejs)
 - [Configuração do Projeto](#-configuração-do-projeto)
+- [Executando com Interface Web](#-executando-com-interface-web)
+- [Executando via Terminal](#-executando-via-terminal)
 - [Personalizando as Respostas](#-personalizando-as-respostas)
 - [Configurações Avançadas](#-configurações-avançadas)
-- [Executando o Bot](#-executando-o-bot)
 - [Lendo o QR Code](#-lendo-o-qr-code)
 - [Parando o Bot](#-parando-o-bot)
 - [Solução de Problemas](#-solução-de-problemas)
+
+---
+
+## 🎨 Interface Web Dashboard (NOVO)
+
+Agora você pode gerenciar o bot através de uma interface web moderna e intuitiva!
+
+### 🚀 Recursos do Dashboard
+
+- **Visualização em Tempo Real**: Veja o status do bot (conectado/desconectado)
+- **QR Code Integrado**: Escaneie o QR Code diretamente no navegador
+- **Gerenciamento de Respostas**: Adicione, edite e remova respostas automáticas
+- **Lista Negra Interativa**: Gerencie termos bloqueados facilmente
+- **Histórico de Mensagens**: Acompanhe todas as respostas enviadas pelo bot
+- **Configurações Visuais**: Ajuste todas as configurações com interface amigável
+- **Controles do Bot**: Inicie e pare o bot com um clique
+- **Responsivo**: Funciona perfeitamente em celulares, tablets e desktops
+
+### 📸 Acesso ao Dashboard
+
+Após iniciar o servidor, acesse:
+```
+http://localhost:3000
+```
+
+### ⚙️ Como Usar
+
+1. Instale as dependências:
+```bash
+npm install
+```
+
+2. Inicie o servidor:
+```bash
+npm run server
+```
+
+3. Abra o navegador e acesse: `http://localhost:3000`
+
+4. Use a interface para:
+   - Ver o QR Code e conectar o WhatsApp
+   - Gerenciar respostas automáticas
+   - Configurar delays e preferências
+   - Acompanhar o histórico em tempo real
 
 ---
 
@@ -373,7 +421,48 @@ settings: {
 
 ---
 
-## 🚀 Executando o Bot
+## 🚀 Executando com Interface Web
+
+**Recomendado para a maioria dos usuários!**
+
+### Passo 1: Iniciar o Servidor
+
+No terminal, dentro da pasta do projeto, execute:
+
+```bash
+npm run server
+```
+
+**Ou:**
+
+```bash
+node server.js
+```
+
+### Passo 2: Acessar o Dashboard
+
+Após executar o comando, você verá:
+
+```
+🤖 Iniciando WhatsApp Bot...
+
+🚀 Servidor rodando em http://localhost:3000
+📊 Dashboard disponível em http://localhost:3000
+```
+
+Abra seu navegador e acesse: **http://localhost:3000**
+
+### Passo 3: Conectar o WhatsApp
+
+1. No dashboard, você verá o QR Code automaticamente
+2. Escaneie o QR Code com seu WhatsApp (veja [instruções abaixo](#-lendo-o-qr-code))
+3. Após conectar, você pode gerenciar tudo pelo navegador!
+
+---
+
+## 🖥️ Executando via Terminal
+
+Se preferir usar apenas o terminal (sem interface web):
 
 ### Passo 1: Iniciar o Bot
 

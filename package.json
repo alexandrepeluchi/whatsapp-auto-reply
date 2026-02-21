@@ -4,14 +4,20 @@
   "description": "Bot do WhatsApp que responde automaticamente baseado em palavras-chave",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node bot.js",
+    "server": "node server.js",
+    "dev": "node server.js"
   },
   "keywords": ["whatsapp", "bot", "automation"],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "whatsapp-web.js": "^1.23.0",
-    "qrcode-terminal": "^0.12.0"
+    "qrcode-terminal": "^0.12.0",
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "cors": "^2.8.5",
+    "qrcode": "^1.5.3"
   }
   ,
   "overrides": {

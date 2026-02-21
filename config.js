@@ -1,6 +1,5 @@
 // Configuração das respostas automáticas
-module.exports = {
-  // Lista de palavras-chave e suas respostas (nomes em português)
+module.exports = {   // Lista de palavras-chave e suas respostas (nomes em português)
   respostasAutomaticas: [
     {
       gatilhos: ['oi', 'olá', 'ola', 'hey'],
@@ -35,13 +34,14 @@ module.exports = {
 
   // Configurações gerais (em português)
   configuracoes: {
-    responderEmGrupos: true,      // Responder em grupos
-    responderEmPrivado: true,     // Responder em conversas privadas
-    diferenciarMaiusculas: false, // Diferenciar maiúsculas/minúsculas
-    palavraInteira: false,        // Exigir palavra completa (true) ou permitir parte da palavra (false)
+    responderEmGrupos: true,          // Responder em grupos
+    responderEmPrivado: false,        // Responder em conversas privadas
+    responderPropriasMensagens: true, // Responder às suas próprias mensagens
+    diferenciarMaiusculas: false,     // Diferenciar maiúsculas/minúsculas
+    palavraInteira: false,            // Exigir palavra completa (true) ou permitir parte da palavra (false)
     intervaloAtraso: {
-      minimo: 10,                 // Delay mínimo em segundos antes de responder
-      maximo: 20                  // Delay máximo em segundos antes de responder
+      minimo: 10,                     // Delay mínimo em segundos antes de responder
+      maximo: 20                      // Delay máximo em segundos antes de responder
     }
   }
 };

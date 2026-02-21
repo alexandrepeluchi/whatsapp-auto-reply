@@ -2,6 +2,9 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const geradorQRCode = require('qrcode-terminal');
 const configuracao = require('./config');
 
+// Para evitar loops - armazena IDs de mensagens enviadas recentemente
+const mensagensEnviadasRecentemente = new Set();
+
 console.log('🤖 Iniciando WhatsApp Bot...\n');
 
 // Cria o cliente do WhatsApp com autenticação local
@@ -41,9 +44,11 @@ cliente.on('qr', (codigoQR) => {
 cliente.on('ready', () => {
     console.log('✅ Bot conectado com sucesso!');
     console.log('🟢 Bot está rodando e pronto para responder mensagens...\n');
+    console.log('🎯 Listener de mensagens ativo (capturando TODAS as mensagens)!');
     console.log('📊 Configurações ativas:');
     console.log(`   - Responder em grupos: ${configuracao.configuracoes.responderEmGrupos ? 'SIM' : 'NÃO'}`);
     console.log(`   - Responder em privado: ${configuracao.configuracoes.responderEmPrivado ? 'SIM' : 'NÃO'}`);
+    console.log(`   - Responder próprias mensagens: ${configuracao.configuracoes.responderPropriasMensagens ? 'SIM' : 'NÃO'}`);
     console.log(`   - Total de gatilhos: ${configuracao.respostasAutomaticas.length}\n`);
 });
 
@@ -166,10 +171,19 @@ function estaNaListaNegra(mensagem) {
 }
 
 // Evento: Nova mensagem recebida
-cliente.on('message', async (mensagem) => {
+// Evento: Mensagem recebida (message_create captura TODAS as mensagens, inclusive as suas)
+cliente.on('message_create', async (mensagem) => {
     try {
-        // Não responder mensagens próprias
-        if (mensagem.fromMe) return;
+        // Ignorar mensagens que o próprio bot enviou (prevenção de loop)
+        if (mensagensEnviadasRecentemente.has(mensagem.id._serialized)) {
+            console.log('⏭️  Ignorando: mensagem enviada pelo próprio bot');
+            return;
+        }
+
+        // Verifica se deve ignorar mensagens próprias
+        if (mensagem.fromMe && !configuracao.configuracoes.responderPropriasMensagens) {
+            return; // Ignora mensagens enviadas por você mesmo
+        }
 
         // Verificar blacklist PRIMEIRO (spam, propagandas, etc)
         if (estaNaListaNegra(mensagem.body)) {
@@ -203,7 +217,14 @@ cliente.on('message', async (mensagem) => {
             await aguardar(atraso);
             
             // Responde mesmo sem conseguir pegar info da conversa
-            await mensagem.reply(resposta);
+            const mensagemEnviada = await mensagem.reply(resposta);
+            
+            // Armazena no Set para evitar loops
+            mensagensEnviadasRecentemente.add(mensagemEnviada.id._serialized);
+            setTimeout(() => {
+                mensagensEnviadasRecentemente.delete(mensagemEnviada.id._serialized);
+            }, 10000); // Remove após 10 segundos
+            
             console.log(`✅ Resposta enviada!`);
             console.log('────────────────────────────────────────');
             return;
@@ -212,8 +233,11 @@ cliente.on('message', async (mensagem) => {
         const ehGrupo = conversa.isGroup;
         
         // Verificar se deve responder baseado no tipo de conversa
-        if (ehGrupo && !configuracao.configuracoes.responderEmGrupos) return;
-        if (!ehGrupo && !configuracao.configuracoes.responderEmPrivado) return;
+        // Se for mensagem própria com config ativa, ignora essas regras
+        if (!mensagem.fromMe) {
+            if (ehGrupo && !configuracao.configuracoes.responderEmGrupos) return;
+            if (!ehGrupo && !configuracao.configuracoes.responderEmPrivado) return;
+        }
         
         // Atraso aleatório configurável
         const atraso = obterAtrasoAleatorio(configuracao.configuracoes.intervaloAtraso.minimo, configuracao.configuracoes.intervaloAtraso.maximo);
@@ -231,7 +255,14 @@ cliente.on('message', async (mensagem) => {
         await aguardar(atraso);
         
         // Enviar resposta
-        await mensagem.reply(resposta);
+        const mensagemEnviada = await mensagem.reply(resposta);
+        
+        // Armazena no Set para evitar loops
+        mensagensEnviadasRecentemente.add(mensagemEnviada.id._serialized);
+        setTimeout(() => {
+            mensagensEnviadasRecentemente.delete(mensagemEnviada.id._serialized);
+        }, 10000); // Remove após 10 segundos
+        
         console.log(`✅ Resposta enviada!`);
         console.log('────────────────────────────────────────');
         
@@ -251,7 +282,13 @@ cliente.on('message', async (mensagem) => {
                 console.log(`⏳ Aguardando ${atraso / 1000}s antes de responder...`);
                 
                 await aguardar(atraso);
-                await mensagem.reply(resposta);
+                const mensagemEnviada = await mensagem.reply(resposta);
+                
+                // Armazena no Set para evitar loops
+                mensagensEnviadasRecentemente.add(mensagemEnviada.id._serialized);
+                setTimeout(() => {
+                    mensagensEnviadasRecentemente.delete(mensagemEnviada.id._serialized);
+                }, 10000); // Remove após 10 segundos
                 
                 console.log(`✅ Resposta enviada! (apesar do erro anterior)`);
                 console.log('────────────────────────────────────────');
