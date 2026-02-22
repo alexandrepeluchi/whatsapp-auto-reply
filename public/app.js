@@ -1,8 +1,8 @@
 // ==================== VARIÁVEIS GLOBAIS ====================
 const API_URL = window.location.origin;
 let socket;
-let configuracaoAtual = null;
-let indiceEditando = -1;
+let currentConfig = null;
+let editingIndex = -1;
 
 // ==================== ELEMENTOS DO DOM ====================
 const elements = {
@@ -15,49 +15,49 @@ const elements = {
     qrCode: document.getElementById('qrCode'),
     
     // Controle do Bot
-    btnIniciar: document.getElementById('btnIniciar'),
-    btnParar: document.getElementById('btnParar'),
+    btnStart: document.getElementById('btnStart'),
+    btnStop: document.getElementById('btnStop'),
     
     // Stats
-    totalRespostas: document.getElementById('totalRespostas'),
-    totalListaNegra: document.getElementById('totalListaNegra'),
+    totalReplies: document.getElementById('totalReplies'),
+    totalBlacklist: document.getElementById('totalBlacklist'),
     
     // Configurações
-    responderGrupos: document.getElementById('responderGrupos'),
-    responderPrivado: document.getElementById('responderPrivado'),
-    diferenciarMaiusculas: document.getElementById('diferenciarMaiusculas'),
-    palavraInteira: document.getElementById('palavraInteira'),
+    replyGroups: document.getElementById('replyGroups'),
+    replyPrivate: document.getElementById('replyPrivate'),
+    caseSensitive: document.getElementById('caseSensitive'),
+    wholeWord: document.getElementById('wholeWord'),
     delayMin: document.getElementById('delayMin'),
     delayMax: document.getElementById('delayMax'),
-    btnSalvarConfig: document.getElementById('btnSalvarConfig'),
+    btnSaveConfig: document.getElementById('btnSaveConfig'),
     
     // Respostas
-    listaRespostas: document.getElementById('listaRespostas'),
-    btnNovaResposta: document.getElementById('btnNovaResposta'),
+    repliesList: document.getElementById('repliesList'),
+    btnNewReply: document.getElementById('btnNewReply'),
     
     // Lista Negra
-    listaNegraContainer: document.getElementById('listaNegraContainer'),
-    btnNovoTermo: document.getElementById('btnNovoTermo'),
+    blacklistContainer: document.getElementById('blacklistContainer'),
+    btnNewTerm: document.getElementById('btnNewTerm'),
     
     // Histórico
-    historicoContainer: document.getElementById('historicoContainer'),
-    btnLimparHistorico: document.getElementById('btnLimparHistorico'),
+    historyContainer: document.getElementById('historyContainer'),
+    btnClearHistory: document.getElementById('btnClearHistory'),
     
     // Modal Resposta
-    modalResposta: document.getElementById('modalResposta'),
+    replyModal: document.getElementById('replyModal'),
     modalTitle: document.getElementById('modalTitle'),
-    inputGatilhos: document.getElementById('inputGatilhos'),
-    inputResposta: document.getElementById('inputResposta'),
-    btnFecharModal: document.getElementById('btnFecharModal'),
-    btnCancelar: document.getElementById('btnCancelar'),
-    btnSalvarResposta: document.getElementById('btnSalvarResposta'),
+    inputTriggers: document.getElementById('inputTriggers'),
+    inputResponse: document.getElementById('inputResponse'),
+    btnCloseModal: document.getElementById('btnCloseModal'),
+    btnCancel: document.getElementById('btnCancel'),
+    btnSaveReply: document.getElementById('btnSaveReply'),
     
     // Modal Lista Negra
-    modalListaNegra: document.getElementById('modalListaNegra'),
-    inputListaNegra: document.getElementById('inputListaNegra'),
-    btnFecharModalListaNegra: document.getElementById('btnFecharModalListaNegra'),
-    btnCancelarListaNegra: document.getElementById('btnCancelarListaNegra'),
-    btnSalvarListaNegra: document.getElementById('btnSalvarListaNegra'),
+    blacklistModal: document.getElementById('blacklistModal'),
+    inputBlacklist: document.getElementById('inputBlacklist'),
+    btnCloseBlacklistModal: document.getElementById('btnCloseBlacklistModal'),
+    btnCancelBlacklist: document.getElementById('btnCancelBlacklist'),
+    btnSaveBlacklist: document.getElementById('btnSaveBlacklist'),
     
     // Toast
     toast: document.getElementById('toast')
@@ -65,9 +65,9 @@ const elements = {
 
 // ==================== WEBSOCKET ====================
 let statusTimeoutId = null;
-let proximoStatus = null;
+let nextStatus = null;
 
-function inicializarWebSocket() {
+function initWebSocket() {
     socket = io(API_URL);
     
     socket.on('connect', () => {
@@ -77,11 +77,11 @@ function inicializarWebSocket() {
     socket.on('status', (status) => {
         // Se houver um delay em andamento para status "autenticado"
         if (statusTimeoutId && status !== 'autenticado') {
-            proximoStatus = status;
+            nextStatus = status;
             return;
         }
         
-        atualizarStatus(status);
+        updateStatus(status);
     });
     
     socket.on('qrcode', (qrcode) => {
@@ -93,8 +93,8 @@ function inicializarWebSocket() {
         }
     });
     
-    socket.on('nova-resposta', (registro) => {
-        adicionarItemHistorico(registro);
+    socket.on('nova-resposta', (record) => {
+        addHistoryItem(record);
     });
     
     socket.on('disconnect', () => {
@@ -103,7 +103,7 @@ function inicializarWebSocket() {
 }
 
 // ==================== FUNÇÕES DE STATUS ====================
-function atualizarStatus(status) {
+function updateStatus(status) {
     const statusMap = {
         'desconectado': { text: 'Desconectado', class: '' },
         'aguardando-qr': { text: 'Aguardando QR Code', class: 'aguardando' },
@@ -121,397 +121,397 @@ function atualizarStatus(status) {
         statusTimeoutId = setTimeout(() => {
             statusTimeoutId = null;
             // Se houver um próximo status na fila, atualiza agora
-            if (proximoStatus) {
-                const statusParaAtualizar = proximoStatus;
-                proximoStatus = null;
-                atualizarStatus(statusParaAtualizar);
+            if (nextStatus) {
+                const pendingStatus = nextStatus;
+                nextStatus = null;
+                updateStatus(pendingStatus);
             }
         }, 2000); // 2 segundos de delay
     }
 }
 
 // ==================== FUNÇÕES DE API ====================
-async function fazerRequisicao(url, opcoes = {}) {
+async function makeRequest(url, options = {}) {
     try {
-        const resposta = await fetch(API_URL + url, {
+        const response = await fetch(API_URL + url, {
             headers: {
                 'Content-Type': 'application/json',
-                ...opcoes.headers
+                ...options.headers
             },
-            ...opcoes
+            ...options
         });
         
-        if (!resposta.ok) {
-            throw new Error(`Erro HTTP: ${resposta.status}`);
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
         }
         
-        return await resposta.json();
-    } catch (erro) {
-        console.error('Erro na requisição:', erro);
-        mostrarToast('Erro ao comunicar com o servidor', 'error');
-        throw erro;
+        return await response.json();
+    } catch (error) {
+        console.error('Erro na requisição:', error);
+        showToast('Erro ao comunicar com o servidor', 'error');
+        throw error;
     }
 }
 
-async function carregarConfiguracoes() {
+async function loadConfig() {
     try {
-        const config = await fazerRequisicao('/api/config');
-        configuracaoAtual = config;
+        const config = await makeRequest('/api/config');
+        currentConfig = config;
         
         // Atualiza configurações gerais
-        elements.responderGrupos.checked = config.configuracoes.responderEmGrupos;
-        elements.responderPrivado.checked = config.configuracoes.responderEmPrivado;
-        elements.diferenciarMaiusculas.checked = config.configuracoes.diferenciarMaiusculas;
-        elements.palavraInteira.checked = config.configuracoes.palavraInteira;
-        elements.delayMin.value = config.configuracoes.intervaloAtraso.minimo;
-        elements.delayMax.value = config.configuracoes.intervaloAtraso.maximo;
+        elements.replyGroups.checked = config.settings.replyInGroups;
+        elements.replyPrivate.checked = config.settings.replyInPrivate;
+        elements.caseSensitive.checked = config.settings.caseSensitive;
+        elements.wholeWord.checked = config.settings.wholeWord;
+        elements.delayMin.value = config.settings.delayRange.min;
+        elements.delayMax.value = config.settings.delayRange.max;
         
         // Atualiza stats
-        elements.totalRespostas.textContent = config.respostasAutomaticas.length;
-        elements.totalListaNegra.textContent = config.listaNegra.length;
+        elements.totalReplies.textContent = config.autoReplies.length;
+        elements.totalBlacklist.textContent = config.blacklist.length;
         
         // Renderiza listas
-        renderizarRespostas();
-        renderizarListaNegra();
-    } catch (erro) {
-        console.error('Erro ao carregar configurações:', erro);
+        renderReplies();
+        renderBlacklist();
+    } catch (error) {
+        console.error('Erro ao carregar configurações:', error);
     }
 }
 
-async function salvarConfiguracoes() {
+async function saveConfig() {
     try {
-        configuracaoAtual.configuracoes.responderEmGrupos = elements.responderGrupos.checked;
-        configuracaoAtual.configuracoes.responderEmPrivado = elements.responderPrivado.checked;
-        configuracaoAtual.configuracoes.diferenciarMaiusculas = elements.diferenciarMaiusculas.checked;
-        configuracaoAtual.configuracoes.palavraInteira = elements.palavraInteira.checked;
-        configuracaoAtual.configuracoes.intervaloAtraso.minimo = parseInt(elements.delayMin.value);
-        configuracaoAtual.configuracoes.intervaloAtraso.maximo = parseInt(elements.delayMax.value);
+        currentConfig.settings.replyInGroups = elements.replyGroups.checked;
+        currentConfig.settings.replyInPrivate = elements.replyPrivate.checked;
+        currentConfig.settings.caseSensitive = elements.caseSensitive.checked;
+        currentConfig.settings.wholeWord = elements.wholeWord.checked;
+        currentConfig.settings.delayRange.min = parseInt(elements.delayMin.value);
+        currentConfig.settings.delayRange.max = parseInt(elements.delayMax.value);
         
-        const resultado = await fazerRequisicao('/api/config', {
+        const result = await makeRequest('/api/config', {
             method: 'POST',
-            body: JSON.stringify(configuracaoAtual)
+            body: JSON.stringify(currentConfig)
         });
         
-        if (resultado.sucesso) {
-            mostrarToast('Configurações salvas com sucesso!', 'success');
+        if (result.success) {
+            showToast('Configurações salvas com sucesso!', 'success');
         }
-    } catch (erro) {
-        console.error('Erro ao salvar configurações:', erro);
+    } catch (error) {
+        console.error('Erro ao salvar configurações:', error);
     }
 }
 
-async function carregarHistorico() {
+async function loadHistory() {
     try {
-        const historico = await fazerRequisicao('/api/historico');
-        elements.historicoContainer.innerHTML = '';
+        const history = await makeRequest('/api/historico');
+        elements.historyContainer.innerHTML = '';
         
-        if (historico.length === 0) {
-            elements.historicoContainer.innerHTML = '<p class="text-muted">Nenhuma resposta enviada ainda</p>';
+        if (history.length === 0) {
+            elements.historyContainer.innerHTML = '<p class="text-muted">Nenhuma resposta enviada ainda</p>';
         } else {
-            historico.forEach(item => adicionarItemHistorico(item));
+            history.forEach(item => addHistoryItem(item));
         }
-    } catch (erro) {
-        console.error('Erro ao carregar histórico:', erro);
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
     }
 }
 
 // ==================== FUNÇÕES DE RENDERIZAÇÃO ====================
-function renderizarRespostas() {
-    elements.listaRespostas.innerHTML = '';
+function renderReplies() {
+    elements.repliesList.innerHTML = '';
     
-    if (configuracaoAtual.respostasAutomaticas.length === 0) {
-        elements.listaRespostas.innerHTML = '<p class="text-muted">Nenhuma resposta automática configurada</p>';
+    if (currentConfig.autoReplies.length === 0) {
+        elements.repliesList.innerHTML = '<p class="text-muted">Nenhuma resposta automática configurada</p>';
         return;
     }
     
-    configuracaoAtual.respostasAutomaticas.forEach((resposta, indice) => {
+    currentConfig.autoReplies.forEach((reply, index) => {
         const div = document.createElement('div');
         div.className = 'resposta-item';
         
-        const respostaTexto = Array.isArray(resposta.resposta) 
-            ? resposta.resposta.join('\n--- OU ---\n')
-            : resposta.resposta;
+        const responseText = Array.isArray(reply.response) 
+            ? reply.response.join('\n--- OU ---\n')
+            : reply.response;
         
         div.innerHTML = `
             <div class="resposta-header">
                 <div>
                     <div class="resposta-gatilhos">
-                        ${resposta.gatilhos.map(g => `<span class="gatilho-tag">${g}</span>`).join('')}
+                        ${reply.triggers.map(g => `<span class="gatilho-tag">${g}</span>`).join('')}
                     </div>
-                    <div class="resposta-text">${respostaTexto}</div>
+                    <div class="resposta-text">${responseText}</div>
                 </div>
                 <div class="resposta-actions">
-                    <button class="btn btn-primary btn-icon" onclick="editarResposta(${indice})">
+                    <button class="btn btn-primary btn-icon" onclick="editReply(${index})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-danger btn-icon" onclick="deletarResposta(${indice})">
+                    <button class="btn btn-danger btn-icon" onclick="deleteReply(${index})">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
         `;
         
-        elements.listaRespostas.appendChild(div);
+        elements.repliesList.appendChild(div);
     });
 }
 
-function renderizarListaNegra() {
-    elements.listaNegraContainer.innerHTML = '';
+function renderBlacklist() {
+    elements.blacklistContainer.innerHTML = '';
     
-    if (configuracaoAtual.listaNegra.length === 0) {
-        elements.listaNegraContainer.innerHTML = '<p class="text-muted">Nenhum termo na lista negra</p>';
+    if (currentConfig.blacklist.length === 0) {
+        elements.blacklistContainer.innerHTML = '<p class="text-muted">Nenhum termo na lista negra</p>';
         return;
     }
     
-    configuracaoAtual.listaNegra.forEach((termo, indice) => {
+    currentConfig.blacklist.forEach((term, index) => {
         const span = document.createElement('span');
         span.className = 'lista-negra-item';
         span.innerHTML = `
-            ${termo}
-            <button onclick="removerListaNegra(${indice})">
+            ${term}
+            <button onclick="removeBlacklist(${index})">
                 <i class="fas fa-times"></i>
             </button>
         `;
-        elements.listaNegraContainer.appendChild(span);
+        elements.blacklistContainer.appendChild(span);
     });
 }
 
-function adicionarItemHistorico(item) {
-    const primeiroItem = elements.historicoContainer.querySelector('.text-muted');
-    if (primeiroItem) {
-        elements.historicoContainer.innerHTML = '';
+function addHistoryItem(item) {
+    const firstItem = elements.historyContainer.querySelector('.text-muted');
+    if (firstItem) {
+        elements.historyContainer.innerHTML = '';
     }
     
     const div = document.createElement('div');
     div.className = 'historico-item';
     
-    const data = new Date(item.timestamp);
-    const dataFormatada = data.toLocaleString('pt-BR');
+    const date = new Date(item.timestamp);
+    const formattedDate = date.toLocaleString('pt-BR');
     
     div.innerHTML = `
         <div class="historico-header">
             <div>
-                <span class="historico-contato">${item.contato}</span>
-                <span class="historico-tipo ${item.tipo}">${item.tipo}</span>
+                <span class="historico-contato">${item.contact}</span>
+                <span class="historico-tipo ${item.type}">${item.type}</span>
             </div>
-            <span class="historico-timestamp">${dataFormatada}</span>
+            <span class="historico-timestamp">${formattedDate}</span>
         </div>
         <div class="historico-mensagem">
-            <strong>Recebido:</strong> ${item.mensagemRecebida}
+            <strong>Recebido:</strong> ${item.receivedMessage}
         </div>
         <div class="historico-resposta">
-            <strong>Respondido:</strong> ${item.respostaEnviada}
+            <strong>Respondido:</strong> ${item.sentReply}
         </div>
     `;
     
-    elements.historicoContainer.insertBefore(div, elements.historicoContainer.firstChild);
+    elements.historyContainer.insertBefore(div, elements.historyContainer.firstChild);
 }
 
 // ==================== FUNÇÕES DE MODAL ====================
-function abrirModalResposta(indice = -1) {
-    indiceEditando = indice;
+function openReplyModal(index = -1) {
+    editingIndex = index;
     
-    if (indice >= 0) {
-        const resposta = configuracaoAtual.respostasAutomaticas[indice];
+    if (index >= 0) {
+        const reply = currentConfig.autoReplies[index];
         elements.modalTitle.textContent = 'Editar Resposta Automática';
-        elements.inputGatilhos.value = resposta.gatilhos.join('\n');
+        elements.inputTriggers.value = reply.triggers.join('\n');
         
-        const respostaTexto = Array.isArray(resposta.resposta) 
-            ? resposta.resposta.join('\n')
-            : resposta.resposta;
-        elements.inputResposta.value = respostaTexto;
+        const responseText = Array.isArray(reply.response) 
+            ? reply.response.join('\n')
+            : reply.response;
+        elements.inputResponse.value = responseText;
     } else {
         elements.modalTitle.textContent = 'Nova Resposta Automática';
-        elements.inputGatilhos.value = '';
-        elements.inputResposta.value = '';
+        elements.inputTriggers.value = '';
+        elements.inputResponse.value = '';
     }
     
-    elements.modalResposta.classList.add('active');
+    elements.replyModal.classList.add('active');
 }
 
-function fecharModalResposta() {
-    elements.modalResposta.classList.remove('active');
-    indiceEditando = -1;
+function closeReplyModal() {
+    elements.replyModal.classList.remove('active');
+    editingIndex = -1;
 }
 
-function abrirModalListaNegra() {
-    elements.inputListaNegra.value = '';
-    elements.modalListaNegra.classList.add('active');
+function openBlacklistModal() {
+    elements.inputBlacklist.value = '';
+    elements.blacklistModal.classList.add('active');
 }
 
-function fecharModalListaNegra() {
-    elements.modalListaNegra.classList.remove('active');
+function closeBlacklistModal() {
+    elements.blacklistModal.classList.remove('active');
 }
 
 // ==================== FUNÇÕES DE RESPOSTAS ====================
-window.editarResposta = function(indice) {
-    abrirModalResposta(indice);
+window.editReply = function(index) {
+    openReplyModal(index);
 };
 
-window.deletarResposta = async function(indice) {
+window.deleteReply = async function(index) {
     if (!confirm('Tem certeza que deseja deletar esta resposta?')) return;
     
     try {
-        const resultado = await fazerRequisicao(`/api/respostas/${indice}`, {
+        const result = await makeRequest(`/api/respostas/${index}`, {
             method: 'DELETE'
         });
         
-        if (resultado.sucesso) {
-            await carregarConfiguracoes();
-            mostrarToast('Resposta deletada com sucesso!', 'success');
+        if (result.success) {
+            await loadConfig();
+            showToast('Resposta deletada com sucesso!', 'success');
         }
-    } catch (erro) {
-        console.error('Erro ao deletar resposta:', erro);
+    } catch (error) {
+        console.error('Erro ao deletar resposta:', error);
     }
 };
 
-async function salvarResposta() {
-    const gatilhos = elements.inputGatilhos.value
+async function saveReply() {
+    const triggers = elements.inputTriggers.value
         .split('\n')
         .map(g => g.trim())
         .filter(g => g.length > 0);
     
-    const respostas = elements.inputResposta.value
+    const responses = elements.inputResponse.value
         .split('\n')
         .map(r => r.trim())
         .filter(r => r.length > 0);
     
-    if (gatilhos.length === 0 || respostas.length === 0) {
-        mostrarToast('Preencha todos os campos!', 'warning');
+    if (triggers.length === 0 || responses.length === 0) {
+        showToast('Preencha todos os campos!', 'warning');
         return;
     }
     
-    const novaResposta = {
-        gatilhos: gatilhos,
-        resposta: respostas.length === 1 ? respostas[0] : respostas
+    const newReply = {
+        triggers: triggers,
+        response: responses.length === 1 ? responses[0] : responses
     };
     
     try {
-        let resultado;
+        let result;
         
-        if (indiceEditando >= 0) {
-            resultado = await fazerRequisicao(`/api/respostas/${indiceEditando}`, {
+        if (editingIndex >= 0) {
+            result = await makeRequest(`/api/respostas/${editingIndex}`, {
                 method: 'PUT',
-                body: JSON.stringify(novaResposta)
+                body: JSON.stringify(newReply)
             });
         } else {
-            resultado = await fazerRequisicao('/api/respostas', {
+            result = await makeRequest('/api/respostas', {
                 method: 'POST',
-                body: JSON.stringify(novaResposta)
+                body: JSON.stringify(newReply)
             });
         }
         
-        if (resultado.sucesso) {
-            await carregarConfiguracoes();
-            fecharModalResposta();
-            mostrarToast(resultado.mensagem, 'success');
+        if (result.success) {
+            await loadConfig();
+            closeReplyModal();
+            showToast(result.message, 'success');
         }
-    } catch (erro) {
-        console.error('Erro ao salvar resposta:', erro);
+    } catch (error) {
+        console.error('Erro ao salvar resposta:', error);
     }
 }
 
 // ==================== FUNÇÕES DE LISTA NEGRA ====================
-window.removerListaNegra = async function(indice) {
+window.removeBlacklist = async function(index) {
     try {
-        configuracaoAtual.listaNegra.splice(indice, 1);
+        currentConfig.blacklist.splice(index, 1);
         
-        const resultado = await fazerRequisicao('/api/config', {
+        const result = await makeRequest('/api/config', {
             method: 'POST',
-            body: JSON.stringify(configuracaoAtual)
+            body: JSON.stringify(currentConfig)
         });
         
-        if (resultado.sucesso) {
-            await carregarConfiguracoes();
-            mostrarToast('Termo removido da lista negra!', 'success');
+        if (result.success) {
+            await loadConfig();
+            showToast('Termo removido da lista negra!', 'success');
         }
-    } catch (erro) {
-        console.error('Erro ao remover termo:', erro);
+    } catch (error) {
+        console.error('Erro ao remover termo:', error);
     }
 };
 
-async function adicionarListaNegra() {
-    const termo = elements.inputListaNegra.value.trim();
+async function addBlacklist() {
+    const term = elements.inputBlacklist.value.trim();
     
-    if (!termo) {
-        mostrarToast('Digite um termo!', 'warning');
+    if (!term) {
+        showToast('Digite um termo!', 'warning');
         return;
     }
     
     try {
-        configuracaoAtual.listaNegra.push(termo);
+        currentConfig.blacklist.push(term);
         
-        const resultado = await fazerRequisicao('/api/config', {
+        const result = await makeRequest('/api/config', {
             method: 'POST',
-            body: JSON.stringify(configuracaoAtual)
+            body: JSON.stringify(currentConfig)
         });
         
-        if (resultado.sucesso) {
-            await carregarConfiguracoes();
-            fecharModalListaNegra();
-            mostrarToast('Termo adicionado à lista negra!', 'success');
+        if (result.success) {
+            await loadConfig();
+            closeBlacklistModal();
+            showToast('Termo adicionado à lista negra!', 'success');
         }
-    } catch (erro) {
-        console.error('Erro ao adicionar termo:', erro);
+    } catch (error) {
+        console.error('Erro ao adicionar termo:', error);
     }
 }
 
 // ==================== FUNÇÕES DE CONTROLE DO BOT ====================
-async function iniciarBot() {
+async function startBot() {
     try {
-        const resultado = await fazerRequisicao('/api/bot/iniciar', {
+        const result = await makeRequest('/api/bot/iniciar', {
             method: 'POST'
         });
         
-        if (resultado.sucesso) {
-            mostrarToast(resultado.mensagem, 'success');
+        if (result.success) {
+            showToast(result.message, 'success');
         } else {
-            mostrarToast(resultado.mensagem, 'warning');
+            showToast(result.message, 'warning');
         }
-    } catch (erro) {
-        console.error('Erro ao iniciar bot:', erro);
+    } catch (error) {
+        console.error('Erro ao iniciar bot:', error);
     }
 }
 
-async function pararBot() {
+async function stopBot() {
     if (!confirm('Tem certeza que deseja parar o bot?')) return;
     
     try {
-        const resultado = await fazerRequisicao('/api/bot/parar', {
+        const result = await makeRequest('/api/bot/parar', {
             method: 'POST'
         });
         
-        if (resultado.sucesso) {
-            mostrarToast(resultado.mensagem, 'success');
+        if (result.success) {
+            showToast(result.message, 'success');
         } else {
-            mostrarToast(resultado.mensagem, 'warning');
+            showToast(result.message, 'warning');
         }
-    } catch (erro) {
-        console.error('Erro ao parar bot:', erro);
+    } catch (error) {
+        console.error('Erro ao parar bot:', error);
     }
 }
 
-async function limparHistorico() {
+async function clearHistory() {
     if (!confirm('Tem certeza que deseja limpar o histórico?')) return;
     
     try {
-        const resultado = await fazerRequisicao('/api/historico', {
+        const result = await makeRequest('/api/historico', {
             method: 'DELETE'
         });
         
-        if (resultado.sucesso) {
-            elements.historicoContainer.innerHTML = '<p class="text-muted">Nenhuma resposta enviada ainda</p>';
-            mostrarToast('Histórico limpo com sucesso!', 'success');
+        if (result.success) {
+            elements.historyContainer.innerHTML = '<p class="text-muted">Nenhuma resposta enviada ainda</p>';
+            showToast('Histórico limpo com sucesso!', 'success');
         }
-    } catch (erro) {
-        console.error('Erro ao limpar histórico:', erro);
+    } catch (error) {
+        console.error('Erro ao limpar histórico:', error);
     }
 }
 
 // ==================== FUNÇÕES UTILITÁRIAS ====================
-function mostrarToast(mensagem, tipo = 'success') {
-    elements.toast.textContent = mensagem;
-    elements.toast.className = `toast ${tipo} show`;
+function showToast(message, type = 'success') {
+    elements.toast.textContent = message;
+    elements.toast.className = `toast ${type} show`;
     
     setTimeout(() => {
         elements.toast.classList.remove('show');
@@ -519,35 +519,35 @@ function mostrarToast(mensagem, tipo = 'success') {
 }
 
 // ==================== EVENT LISTENERS ====================
-elements.btnIniciar.addEventListener('click', iniciarBot);
-elements.btnParar.addEventListener('click', pararBot);
-elements.btnSalvarConfig.addEventListener('click', salvarConfiguracoes);
-elements.btnNovaResposta.addEventListener('click', () => abrirModalResposta());
-elements.btnNovoTermo.addEventListener('click', abrirModalListaNegra);
-elements.btnLimparHistorico.addEventListener('click', limparHistorico);
+elements.btnStart.addEventListener('click', startBot);
+elements.btnStop.addEventListener('click', stopBot);
+elements.btnSaveConfig.addEventListener('click', saveConfig);
+elements.btnNewReply.addEventListener('click', () => openReplyModal());
+elements.btnNewTerm.addEventListener('click', openBlacklistModal);
+elements.btnClearHistory.addEventListener('click', clearHistory);
 
 // Modal Resposta
-elements.btnFecharModal.addEventListener('click', fecharModalResposta);
-elements.btnCancelar.addEventListener('click', fecharModalResposta);
-elements.btnSalvarResposta.addEventListener('click', salvarResposta);
+elements.btnCloseModal.addEventListener('click', closeReplyModal);
+elements.btnCancel.addEventListener('click', closeReplyModal);
+elements.btnSaveReply.addEventListener('click', saveReply);
 
 // Modal Lista Negra
-elements.btnFecharModalListaNegra.addEventListener('click', fecharModalListaNegra);
-elements.btnCancelarListaNegra.addEventListener('click', fecharModalListaNegra);
-elements.btnSalvarListaNegra.addEventListener('click', adicionarListaNegra);
+elements.btnCloseBlacklistModal.addEventListener('click', closeBlacklistModal);
+elements.btnCancelBlacklist.addEventListener('click', closeBlacklistModal);
+elements.btnSaveBlacklist.addEventListener('click', addBlacklist);
 
 // Fechar modal ao clicar fora
-elements.modalResposta.addEventListener('click', (e) => {
-    if (e.target === elements.modalResposta) fecharModalResposta();
+elements.replyModal.addEventListener('click', (e) => {
+    if (e.target === elements.replyModal) closeReplyModal();
 });
 
-elements.modalListaNegra.addEventListener('click', (e) => {
-    if (e.target === elements.modalListaNegra) fecharModalListaNegra();
+elements.blacklistModal.addEventListener('click', (e) => {
+    if (e.target === elements.blacklistModal) closeBlacklistModal();
 });
 
 // ==================== INICIALIZAÇÃO ====================
 document.addEventListener('DOMContentLoaded', () => {
-    inicializarWebSocket();
-    carregarConfiguracoes();
-    carregarHistorico();
+    initWebSocket();
+    loadConfig();
+    loadHistory();
 });

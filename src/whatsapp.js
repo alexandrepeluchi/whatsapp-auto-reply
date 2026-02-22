@@ -2,15 +2,15 @@ const QRCode = require('qrcode');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const configManager = require('./config-manager');
 
-function inicializarBot(estado, io) {
-    if (estado.cliente) {
+function initializeBot(state, io) {
+    if (state.client) {
         console.log('⚠️  Bot já está inicializado');
         return;
     }
 
     console.log('🤖 Iniciando WhatsApp Bot...\n');
 
-    estado.cliente = new Client({
+    state.client = new Client({
         authStrategy: new LocalAuth({
             dataPath: '.wwebjs_auth'
         }),
@@ -31,89 +31,89 @@ function inicializarBot(estado, io) {
     });
 
     // Evento: QR Code gerado
-    estado.cliente.on('qr', async (codigoQR) => {
+    state.client.on('qr', async (qrCode) => {
         console.log('📱 QR CODE GERADO!');
-        estado.statusBot = 'aguardando-qr';
+        state.botStatus = 'aguardando-qr';
 
         try {
-            estado.qrCodeAtual = await QRCode.toDataURL(codigoQR);
-            io.emit('qrcode', estado.qrCodeAtual);
-            io.emit('status', estado.statusBot);
+            state.currentQrCode = await QRCode.toDataURL(qrCode);
+            io.emit('qrcode', state.currentQrCode);
+            io.emit('status', state.botStatus);
         } catch (err) {
             console.error('Erro ao gerar QR Code:', err);
         }
     });
 
     // Evento: Cliente pronto
-    estado.cliente.on('ready', () => {
-        const config = configManager.carregar();
+    state.client.on('ready', () => {
+        const config = configManager.load();
         console.log('✅ Bot conectado com sucesso!');
         console.log('🎯 Listener de mensagens registrado e ativo (capturando TODAS as mensagens)!');
         console.log('📊 Configurações ativas:');
-        console.log(`   - Responder em grupos: ${config.configuracoes.responderEmGrupos ? 'SIM' : 'NÃO'}`);
-        console.log(`   - Responder em privado: ${config.configuracoes.responderEmPrivado ? 'SIM' : 'NÃO'}`);
-        console.log(`   - Responder próprias mensagens: ${config.configuracoes.responderPropriasMensagens ? 'SIM' : 'NÃO'}`);
-        console.log(`   - Total de gatilhos: ${config.respostasAutomaticas.length}\n`);
-        estado.statusBot = 'conectado';
-        estado.qrCodeAtual = null;
-        io.emit('status', estado.statusBot);
+        console.log(`   - Responder em grupos: ${config.settings.replyInGroups ? 'SIM' : 'NÃO'}`);
+        console.log(`   - Responder em privado: ${config.settings.replyInPrivate ? 'SIM' : 'NÃO'}`);
+        console.log(`   - Responder próprias mensagens: ${config.settings.replyOwnMessages ? 'SIM' : 'NÃO'}`);
+        console.log(`   - Total de gatilhos: ${config.autoReplies.length}\n`);
+        state.botStatus = 'conectado';
+        state.currentQrCode = null;
+        io.emit('status', state.botStatus);
         io.emit('qrcode', null);
     });
 
     // Evento: Autenticação bem-sucedida
-    estado.cliente.on('authenticated', () => {
+    state.client.on('authenticated', () => {
         console.log('🔐 Autenticação realizada com sucesso!');
-        estado.statusBot = 'autenticado';
-        io.emit('status', estado.statusBot);
+        state.botStatus = 'autenticado';
+        io.emit('status', state.botStatus);
     });
 
     // Evento: Falha na autenticação
-    estado.cliente.on('auth_failure', (mensagem) => {
-        console.error('❌ Falha na autenticação:', mensagem);
-        estado.statusBot = 'erro-autenticacao';
-        io.emit('status', estado.statusBot);
+    state.client.on('auth_failure', (message) => {
+        console.error('❌ Falha na autenticação:', message);
+        state.botStatus = 'erro-autenticacao';
+        io.emit('status', state.botStatus);
     });
 
     // Evento: Cliente desconectado
-    estado.cliente.on('disconnected', (motivo) => {
-        console.log('🔌 Cliente desconectado:', motivo);
-        estado.statusBot = 'desconectado';
-        estado.cliente = null;
-        io.emit('status', estado.statusBot);
+    state.client.on('disconnected', (reason) => {
+        console.log('🔌 Cliente desconectado:', reason);
+        state.botStatus = 'desconectado';
+        state.client = null;
+        io.emit('status', state.botStatus);
     });
 
     // Evento: Mensagem recebida (message_create captura TODAS as mensagens, inclusive as suas)
-    estado.cliente.on('message_create', async (mensagem) => {
+    state.client.on('message_create', async (message) => {
         try {
-            const config = configManager.carregar();
-            const chat = await mensagem.getChat();
-            const ehGrupo = chat.isGroup;
+            const config = configManager.load();
+            const chat = await message.getChat();
+            const isGroup = chat.isGroup;
 
             // DEBUG: Log de mensagem recebida
-            console.log(`\n📨 Mensagem recebida: "${mensagem.body}"`);
-            console.log(`   fromMe: ${mensagem.fromMe}`);
-            console.log(`   ehGrupo: ${ehGrupo}`);
-            console.log(`   responderPropriasMensagens: ${config.configuracoes.responderPropriasMensagens}`);
+            console.log(`\n📨 Mensagem recebida: "${message.body}"`);
+            console.log(`   fromMe: ${message.fromMe}`);
+            console.log(`   isGroup: ${isGroup}`);
+            console.log(`   replyOwnMessages: ${config.settings.replyOwnMessages}`);
 
             // Ignora mensagens que o bot acabou de enviar (evita loops)
-            if (estado.mensagensEnviadasRecentemente.has(mensagem.id._serialized)) {
+            if (state.recentlySentMessages.has(message.id._serialized)) {
                 console.log('   ⏭️  Ignorando: mensagem enviada pelo próprio bot');
                 return;
             }
 
             // Verifica se deve ignorar mensagens próprias
-            if (mensagem.fromMe && !config.configuracoes.responderPropriasMensagens) {
+            if (message.fromMe && !config.settings.replyOwnMessages) {
                 console.log('   ❌ Ignorando: mensagem própria e config desativada');
                 return;
             }
 
             // Se for mensagem própria E a config está ativa, pode prosseguir
             // Senão, verifica as regras normais de grupo/privado
-            if (!mensagem.fromMe) {
-                const deveResponder = (ehGrupo && config.configuracoes.responderEmGrupos) ||
-                                     (!ehGrupo && config.configuracoes.responderEmPrivado);
-                console.log(`   deveResponder (outros): ${deveResponder}`);
-                if (!deveResponder) {
+            if (!message.fromMe) {
+                const shouldReply = (isGroup && config.settings.replyInGroups) ||
+                                     (!isGroup && config.settings.replyInPrivate);
+                console.log(`   shouldReply (outros): ${shouldReply}`);
+                if (!shouldReply) {
                     console.log('   ❌ Ignorando: regras de grupo/privado');
                     return;
                 }
@@ -121,73 +121,73 @@ function inicializarBot(estado, io) {
                 console.log('   ✅ Mensagem própria COM config ativa - processando...');
             }
 
-            // Verifica lista negra
-            const textoMensagem = mensagem.body.toLowerCase();
-            const estaListaNegra = config.listaNegra.some(termo =>
-                textoMensagem.includes(termo.toLowerCase())
+            // Verifica blacklist
+            const messageText = message.body.toLowerCase();
+            const isBlacklisted = config.blacklist.some(term =>
+                messageText.includes(term.toLowerCase())
             );
 
-            if (estaListaNegra) {
+            if (isBlacklisted) {
                 console.log('   ❌ Ignorando: mensagem contém termo da lista negra');
                 return;
             }
 
             // Procura por gatilhos
-            console.log(`   🔍 Procurando gatilhos em ${config.respostasAutomaticas.length} regra(s)...`);
-            for (const item of config.respostasAutomaticas) {
-                const gatilhoEncontrado = item.gatilhos.some(gatilho => {
-                    const textoComparacao = config.configuracoes.diferenciarMaiusculas ?
-                        mensagem.body : textoMensagem;
-                    const gatilhoComparacao = config.configuracoes.diferenciarMaiusculas ?
-                        gatilho : gatilho.toLowerCase();
+            console.log(`   🔍 Procurando gatilhos em ${config.autoReplies.length} regra(s)...`);
+            for (const item of config.autoReplies) {
+                const triggerFound = item.triggers.some(trigger => {
+                    const comparisonText = config.settings.caseSensitive ?
+                        message.body : messageText;
+                    const triggerComparison = config.settings.caseSensitive ?
+                        trigger : trigger.toLowerCase();
 
-                    if (config.configuracoes.palavraInteira) {
-                        const regex = new RegExp(`\\b${gatilhoComparacao}\\b`);
-                        return regex.test(textoComparacao);
+                    if (config.settings.wholeWord) {
+                        const regex = new RegExp(`\\b${triggerComparison}\\b`);
+                        return regex.test(comparisonText);
                     } else {
-                        return textoComparacao.includes(gatilhoComparacao);
+                        return comparisonText.includes(triggerComparison);
                     }
                 });
 
-                if (gatilhoEncontrado) {
+                if (triggerFound) {
                     console.log(`   ✅ Gatilho encontrado! Preparando resposta...`);
                     // Delay aleatório
-                    const delayMin = config.configuracoes.intervaloAtraso.minimo * 1000;
-                    const delayMax = config.configuracoes.intervaloAtraso.maximo * 1000;
+                    const delayMin = config.settings.delayRange.min * 1000;
+                    const delayMax = config.settings.delayRange.max * 1000;
                     const delay = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
 
                     setTimeout(async () => {
                         // Seleciona resposta aleatória se houver múltiplas
-                        const respostas = Array.isArray(item.resposta) ? item.resposta : [item.resposta];
-                        const respostaEscolhida = respostas[Math.floor(Math.random() * respostas.length)];
+                        const responses = Array.isArray(item.response) ? item.response : [item.response];
+                        const chosenResponse = responses[Math.floor(Math.random() * responses.length)];
 
-                        const mensagemEnviada = await mensagem.reply(respostaEscolhida);
+                        const sentMessage = await message.reply(chosenResponse);
 
                         // Adiciona ID da mensagem enviada ao Set (evita loops)
-                        if (mensagemEnviada && mensagemEnviada.id) {
-                            estado.mensagensEnviadasRecentemente.add(mensagemEnviada.id._serialized);
+                        if (sentMessage && sentMessage.id) {
+                            state.recentlySentMessages.add(sentMessage.id._serialized);
                             // Remove após 10 segundos
                             setTimeout(() => {
-                                estado.mensagensEnviadasRecentemente.delete(mensagemEnviada.id._serialized);
+                                state.recentlySentMessages.delete(sentMessage.id._serialized);
                             }, 10000);
                         }
 
                         // Adiciona ao histórico
-                        const registro = {
+                        const record = {
                             timestamp: new Date().toISOString(),
-                            de: mensagem.from,
-                            contato: chat.name || mensagem.from,
-                            mensagemRecebida: mensagem.body,
-                            respostaEnviada: respostaEscolhida,
-                            tipo: ehGrupo ? 'grupo' : 'privado'
+                            from: message.from,
+                            contact: chat.name || message.from,
+                            receivedMessage: message.body,
+                            sentReply: chosenResponse,
+                            type: isGroup ? 'grupo' : 'privado'
                         };
 
-                        estado.historicoMensagens.unshift(registro);
-                        if (estado.historicoMensagens.length > 100) estado.historicoMensagens.pop();
+                        state.messageHistory.unshift(record);
+                        if (state.messageHistory.length > 100) state.messageHistory.pop();
 
-                        io.emit('nova-resposta', registro);
+                        io.emit('nova-resposta', record);
 
-                        console.log(`✅ Respondido: ${chat.name || mensagem.from}`);
+                        console.log(`✅ Respondido: ${chat.name || message.from}`);
                     }, delay);
 
                     break;
@@ -195,26 +195,26 @@ function inicializarBot(estado, io) {
             }
 
             console.log('   ℹ️  Processamento da mensagem concluído.\n');
-        } catch (erro) {
-            console.error('❌ Erro ao processar mensagem:', erro);
+        } catch (error) {
+            console.error('❌ Erro ao processar mensagem:', error);
         }
     });
 
     // Inicializa o cliente
-    estado.cliente.initialize();
+    state.client.initialize();
 }
 
-async function pararBot(estado, io) {
-    if (estado.cliente) {
+async function stopBot(state, io) {
+    if (state.client) {
         console.log('🛑 Parando o bot...');
-        await estado.cliente.destroy();
-        estado.cliente = null;
-        estado.statusBot = 'desconectado';
-        io.emit('status', estado.statusBot);
+        await state.client.destroy();
+        state.client = null;
+        state.botStatus = 'desconectado';
+        io.emit('status', state.botStatus);
         console.log('✅ Bot parado com sucesso!');
         return true;
     }
     return false;
 }
 
-module.exports = { inicializarBot, pararBot };
+module.exports = { initializeBot, stopBot };

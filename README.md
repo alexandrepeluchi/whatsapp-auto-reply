@@ -188,8 +188,8 @@ Você pode editar pelo dashboard ou diretamente no arquivo `config.js`.
 
 ```javascript
 {
-  gatilhos: ['oi', 'olá', 'hey'],
-  resposta: [
+  triggers: ['oi', 'olá', 'hey'],
+  response: [
     'Olá! Como posso ajudar? 😊',
     'Oi! Tudo bem?',
     'Hey! Em que posso ajudar?'
@@ -207,22 +207,22 @@ As configurações ficam em `config.js`.
 
 ```javascript
 module.exports = {
-  respostasAutomaticas: [
+  autoReplies: [
     {
-      gatilhos: ['horário', 'horario'],
-      resposta: 'Nosso horário é de segunda a sexta, das 9h às 18h.'
+      triggers: ['horário', 'horario'],
+      response: 'Nosso horário é de segunda a sexta, das 9h às 18h.'
     }
   ],
-  listaNegra: ['oferta imperdível', 'clique aqui', 'ganhe dinheiro'],
-  configuracoes: {
-    responderEmGrupos: true,
-    responderEmPrivado: false,
-    responderPropriasMensagens: true,
-    diferenciarMaiusculas: false,
-    palavraInteira: false,
-    intervaloAtraso: {
-      minimo: 10,
-      maximo: 20
+  blacklist: ['oferta imperdível', 'clique aqui', 'ganhe dinheiro'],
+  settings: {
+    replyInGroups: true,
+    replyInPrivate: false,
+    replyOwnMessages: true,
+    caseSensitive: false,
+    wholeWord: false,
+    delayRange: {
+      min: 10,
+      max: 20
     }
   }
 };

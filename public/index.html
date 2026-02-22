@@ -56,10 +56,10 @@
                     </div>
                     <div class="card-body">
                         <div class="bot-controls">
-                            <button class="btn btn-success" id="btnIniciar">
+                            <button class="btn btn-success" id="btnStart">
                                 <i class="fas fa-play"></i> Iniciar Bot
                             </button>
-                            <button class="btn btn-danger" id="btnParar">
+                            <button class="btn btn-danger" id="btnStop">
                                 <i class="fas fa-stop"></i> Parar Bot
                             </button>
                         </div>
@@ -67,14 +67,14 @@
                             <div class="stat-item">
                                 <i class="fas fa-reply"></i>
                                 <div>
-                                    <span class="stat-value" id="totalRespostas">0</span>
+                                    <span class="stat-value" id="totalReplies">0</span>
                                     <span class="stat-label">Respostas Configuradas</span>
                                 </div>
                             </div>
                             <div class="stat-item">
                                 <i class="fas fa-ban"></i>
                                 <div>
-                                    <span class="stat-value" id="totalListaNegra">0</span>
+                                    <span class="stat-value" id="totalBlacklist">0</span>
                                     <span class="stat-label">Termos na Lista Negra</span>
                                 </div>
                             </div>
@@ -91,28 +91,28 @@
                     <div class="card-body">
                         <div class="config-group">
                             <label class="switch-label">
-                                <input type="checkbox" id="responderGrupos" class="switch-input">
+                                <input type="checkbox" id="replyGroups" class="switch-input">
                                 <span class="switch-slider"></span>
                                 <span class="switch-text">Responder em Grupos</span>
                             </label>
                         </div>
                         <div class="config-group">
                             <label class="switch-label">
-                                <input type="checkbox" id="responderPrivado" class="switch-input">
+                                <input type="checkbox" id="replyPrivate" class="switch-input">
                                 <span class="switch-slider"></span>
                                 <span class="switch-text">Responder em Privado</span>
                             </label>
                         </div>
                         <div class="config-group">
                             <label class="switch-label">
-                                <input type="checkbox" id="diferenciarMaiusculas" class="switch-input">
+                                <input type="checkbox" id="caseSensitive" class="switch-input">
                                 <span class="switch-slider"></span>
                                 <span class="switch-text">Diferenciar Maiúsculas</span>
                             </label>
                         </div>
                         <div class="config-group">
                             <label class="switch-label">
-                                <input type="checkbox" id="palavraInteira" class="switch-input">
+                                <input type="checkbox" id="wholeWord" class="switch-input">
                                 <span class="switch-slider"></span>
                                 <span class="switch-text">Somente Palavra Inteira</span>
                             </label>
@@ -125,7 +125,7 @@
                                 <input type="number" id="delayMax" placeholder="Máximo" min="1">
                             </div>
                         </div>
-                        <button class="btn btn-primary btn-block" id="btnSalvarConfig">
+                        <button class="btn btn-primary btn-block" id="btnSaveConfig">
                             <i class="fas fa-save"></i> Salvar Configurações
                         </button>
                     </div>
@@ -137,12 +137,12 @@
                 <div class="card-header">
                     <i class="fas fa-comments"></i>
                     <h2>Respostas Automáticas</h2>
-                    <button class="btn btn-primary" id="btnNovaResposta">
+                    <button class="btn btn-primary" id="btnNewReply">
                         <i class="fas fa-plus"></i> Nova Resposta
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="listaRespostas" class="respostas-lista"></div>
+                    <div id="repliesList" class="respostas-lista"></div>
                 </div>
             </section>
 
@@ -151,12 +151,12 @@
                 <div class="card-header">
                     <i class="fas fa-ban"></i>
                     <h2>Lista Negra</h2>
-                    <button class="btn btn-primary" id="btnNovoTermo">
+                    <button class="btn btn-primary" id="btnNewTerm">
                         <i class="fas fa-plus"></i> Adicionar Termo
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="listaNegraContainer" class="lista-negra-container"></div>
+                    <div id="blacklistContainer" class="lista-negra-container"></div>
                 </div>
             </section>
 
@@ -165,12 +165,12 @@
                 <div class="card-header">
                     <i class="fas fa-history"></i>
                     <h2>Histórico de Respostas</h2>
-                    <button class="btn btn-danger" id="btnLimparHistorico">
+                    <button class="btn btn-danger" id="btnClearHistory">
                         <i class="fas fa-trash"></i> Limpar
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="historicoContainer" class="historico-container">
+                    <div id="historyContainer" class="historico-container">
                         <p class="text-muted">Nenhuma resposta enviada ainda</p>
                     </div>
                 </div>
@@ -179,45 +179,45 @@
     </main>
 
     <!-- Modal para Adicionar/Editar Resposta -->
-    <div class="modal" id="modalResposta">
+    <div class="modal" id="replyModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modalTitle">Nova Resposta Automática</h3>
-                <button class="modal-close" id="btnFecharModal">&times;</button>
+                <button class="modal-close" id="btnCloseModal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label>Gatilhos (palavras-chave) - um por linha:</label>
-                    <textarea id="inputGatilhos" rows="4" placeholder="oi&#10;olá&#10;hey"></textarea>
+                    <textarea id="inputTriggers" rows="4" placeholder="oi&#10;olá&#10;hey"></textarea>
                 </div>
                 <div class="form-group">
                     <label>Resposta(s) - uma por linha (será escolhida aleatoriamente):</label>
-                    <textarea id="inputResposta" rows="4" placeholder="Olá! Como posso ajudar? 😊"></textarea>
+                    <textarea id="inputResponse" rows="4" placeholder="Olá! Como posso ajudar? 😊"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>
-                <button class="btn btn-primary" id="btnSalvarResposta">Salvar</button>
+                <button class="btn btn-secondary" id="btnCancel">Cancelar</button>
+                <button class="btn btn-primary" id="btnSaveReply">Salvar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal para Adicionar Termo à Lista Negra -->
-    <div class="modal" id="modalListaNegra">
+    <div class="modal" id="blacklistModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Adicionar à Lista Negra</h3>
-                <button class="modal-close" id="btnFecharModalListaNegra">&times;</button>
+                <button class="modal-close" id="btnCloseBlacklistModal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label>Termo ou frase:</label>
-                    <input type="text" id="inputListaNegra" placeholder="Ex: spam, oferta imperdível">
+                    <input type="text" id="inputBlacklist" placeholder="Ex: spam, oferta imperdível">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="btnCancelarListaNegra">Cancelar</button>
-                <button class="btn btn-primary" id="btnSalvarListaNegra">Adicionar</button>
+                <button class="btn btn-secondary" id="btnCancelBlacklist">Cancelar</button>
+                <button class="btn btn-primary" id="btnSaveBlacklist">Adicionar</button>
             </div>
         </div>
     </div>
