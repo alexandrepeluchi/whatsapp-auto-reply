@@ -13,7 +13,8 @@ Bot automatizado para WhatsApp com respostas naturais e humanizadas. Suporta res
     - [📸 Acesso ao Dashboard](#-acesso-ao-dashboard)
   - [🎯 O que é este projeto?](#-o-que-é-este-projeto)
   - [✨ Funcionalidades](#-funcionalidades)
-  - [📦 Pré-requisitos](#-pré-requisitos)
+  - [� Estrutura do Projeto](#-estrutura-do-projeto)
+  - [�📦 Pré-requisitos](#-pré-requisitos)
   - [🔧 Instalação do Node.js](#-instalação-do-nodejs)
     - [Windows](#windows)
     - [Mac](#mac)
@@ -78,7 +79,25 @@ Funciona em:
 - 📊 Logs e histórico de respostas
 - 🛡️ Tratamento de erros e reconexão
 
-## 📦 Pré-requisitos
+## � Estrutura do Projeto
+
+```text
+bot.js               # Bot standalone (modo terminal)
+server.js            # Ponto de entrada do servidor web
+config.js            # Configurações e respostas automáticas
+package.json
+README.md
+src/
+  config-manager.js  # Leitura e escrita do config.js
+  whatsapp.js        # Gerenciamento do client WhatsApp
+  routes.js          # Rotas da API REST
+public/
+  index.html         # Dashboard HTML
+  app.js             # Lógica do dashboard
+  styles.css         # Estilos do dashboard
+```
+
+## �📦 Pré-requisitos
 
 Antes de começar, você precisa de:
 
