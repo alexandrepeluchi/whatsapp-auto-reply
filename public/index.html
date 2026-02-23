@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bot - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fab fa-whatsapp"></i>
+                    <h1>WhatsApp Bot Dashboard</h1>
+                </div>
+                <div class="status-badge">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Desconectado</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Seção QR Code -->
+            <section class="qr-section" id="qrSection" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-qrcode"></i>
+                        <h2>Escanear QR Code</h2>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="qr-container">
+                            <img id="qrCode" src="" alt="QR Code">
+                        </div>
+                        <p class="qr-instructions">
+                            <i class="fas fa-info-circle"></i>
+                            Abra o WhatsApp no seu celular e escaneie o código acima
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Grid de Cards -->
+            <div class="dashboard-grid">
+                <!-- Card de Controle do Bot -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-robot"></i>
+                        <h2>Controle do Bot</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="bot-controls">
+                            <button class="btn btn-success" id="btnStart">
+                                <i class="fas fa-play"></i> Iniciar Bot
+                            </button>
+                            <button class="btn btn-danger" id="btnStop">
+                                <i class="fas fa-stop"></i> Parar Bot
+                            </button>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <i class="fas fa-reply"></i>
+                                <div>
+                                    <span class="stat-value" id="totalReplies">0</span>
+                                    <span class="stat-label">Respostas Configuradas</span>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-ban"></i>
+                                <div>
+                                    <span class="stat-value" id="totalBlacklist">0</span>
+                                    <span class="stat-label">Termos na Lista Negra</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card de Configurações Gerais -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-cog"></i>
+                        <h2>Configurações Gerais</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="replyGroups" class="switch-input">
+                                <span class="switch-slider"></span>
+                                <span class="switch-text">Responder em Grupos</span>
+                            </label>
+                        </div>
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="replyPrivate" class="switch-input">
+                                <span class="switch-slider"></span>
+                                <span class="switch-text">Responder em Privado</span>
+                            </label>
+                        </div>
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="caseSensitive" class="switch-input">
+                                <span class="switch-slider"></span>
+                                <span class="switch-text">Diferenciar Maiúsculas</span>
+                            </label>
+                        </div>
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="wholeWord" class="switch-input">
+                                <span class="switch-slider"></span>
+                                <span class="switch-text">Somente Palavra Inteira</span>
+                            </label>
+                        </div>
+                        <div class="delay-config">
+                            <label>Delay de Resposta (segundos):</label>
+                            <div class="input-group">
+                                <input type="number" id="delayMin" placeholder="Mínimo" min="1">
+                                <span>até</span>
+                                <input type="number" id="delayMax" placeholder="Máximo" min="1">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-block" id="btnSaveConfig">
+                            <i class="fas fa-save"></i> Salvar Configurações
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de Respostas Automáticas -->
+            <section class="card">
+                <div class="card-header">
+                    <i class="fas fa-comments"></i>
+                    <h2>Respostas Automáticas</h2>
+                    <button class="btn btn-primary" id="btnNewReply">
+                        <i class="fas fa-plus"></i> Nova Resposta
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="repliesList" class="respostas-lista"></div>
+                </div>
+            </section>
+
+            <!-- Seção de Lista Negra -->
+            <section class="card">
+                <div class="card-header">
+                    <i class="fas fa-ban"></i>
+                    <h2>Lista Negra</h2>
+                    <button class="btn btn-primary" id="btnNewTerm">
+                        <i class="fas fa-plus"></i> Adicionar Termo
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="blacklistContainer" class="lista-negra-container"></div>
+                </div>
+            </section>
+
+            <!-- Seção de Histórico -->
+            <section class="card">
+                <div class="card-header">
+                    <i class="fas fa-history"></i>
+                    <h2>Histórico de Respostas</h2>
+                    <button class="btn btn-danger" id="btnClearHistory">
+                        <i class="fas fa-trash"></i> Limpar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="historyContainer" class="historico-container">
+                        <p class="text-muted">Nenhuma resposta enviada ainda</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal para Adicionar/Editar Resposta -->
+    <div class="modal" id="replyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Nova Resposta Automática</h3>
+                <button class="modal-close" id="btnCloseModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Gatilhos (palavras-chave) - um por linha:</label>
+                    <textarea id="inputTriggers" rows="4" placeholder="oi&#10;olá&#10;hey"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Resposta(s) - uma por linha (será escolhida aleatoriamente):</label>
+                    <textarea id="inputResponse" rows="4" placeholder="Olá! Como posso ajudar? 😊"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btnCancel">Cancelar</button>
+                <button class="btn btn-primary" id="btnSaveReply">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar Termo à Lista Negra -->
+    <div class="modal" id="blacklistModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Adicionar à Lista Negra</h3>
+                <button class="modal-close" id="btnCloseBlacklistModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Termo ou frase:</label>
+                    <input type="text" id="inputBlacklist" placeholder="Ex: spam, oferta imperdível">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btnCancelBlacklist">Cancelar</button>
+                <button class="btn btn-primary" id="btnSaveBlacklist">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast para notificações -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
