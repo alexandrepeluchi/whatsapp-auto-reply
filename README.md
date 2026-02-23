@@ -22,8 +22,7 @@ Bot automatizado para WhatsApp com respostas naturais e humanizadas. Suporta res
   - [⚙️ Configuração do Projeto](#️-configuração-do-projeto)
     - [Passo 1: Baixar o projeto](#passo-1-baixar-o-projeto)
     - [Passo 2: Instalar dependências](#passo-2-instalar-dependências)
-  - [🚀 Executando com Interface Web](#-executando-com-interface-web)
-  - [🖥️ Executando via Terminal](#️-executando-via-terminal)
+  - [🚀 Executando](#-executando)
   - [🎨 Personalizando as Respostas](#-personalizando-as-respostas)
     - [Estrutura usada no projeto](#estrutura-usada-no-projeto)
   - [⚙️ Configurações Avançadas](#️-configurações-avançadas)
@@ -82,7 +81,6 @@ Funciona em:
 ## � Estrutura do Projeto
 
 ```text
-bot.js               # Bot standalone (modo terminal)
 server.js            # Ponto de entrada do servidor web
 config.js            # Configurações e respostas automáticas
 package.json
@@ -156,29 +154,17 @@ cd whatsapp-auto-reply
 npm install
 ```
 
-## 🚀 Executando com Interface Web
-
-Modo recomendado:
-
-```bash
-npm run server
-```
-
-Depois abra:
-
-```text
-http://localhost:3000
-```
-
-## 🖥️ Executando via Terminal
-
-Se preferir sem interface web:
+## 🚀 Executando
 
 ```bash
 npm start
 ```
 
-Nesse modo, o QR Code aparece no terminal.
+Depois abra o dashboard:
+
+```text
+http://localhost:3000
+```
 
 ## 🎨 Personalizando as Respostas
 
@@ -233,7 +219,7 @@ module.exports = {
 1. Abra o WhatsApp no celular
 2. Vá em **Aparelhos conectados**
 3. Toque em **Conectar um aparelho**
-4. Escaneie o QR Code exibido no terminal ou dashboard
+4. Escaneie o QR Code exibido no dashboard
 
 ## 🛑 Parando o Bot
 
