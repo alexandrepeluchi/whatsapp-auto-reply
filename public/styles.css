@@ -642,6 +642,70 @@ body {
     border-color: var(--primary);
 }
 
+/* ==================== MODAL DE CONFIRMAÇÃO ==================== */
+.confirm-modal-content {
+    max-width: 420px;
+    text-align: center;
+    padding: 32px 28px;
+    animation: confirmModalIn 0.25s ease-out;
+}
+
+@keyframes confirmModalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.confirm-modal-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: var(--warning);
+}
+
+.confirm-modal-icon.danger {
+    color: var(--danger);
+}
+
+.confirm-modal-icon.success {
+    color: var(--success);
+}
+
+.confirm-modal-icon.info {
+    color: var(--secondary);
+}
+
+.confirm-modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 8px;
+}
+
+.confirm-modal-message {
+    font-size: 15px;
+    color: var(--gray);
+    line-height: 1.5;
+    margin-bottom: 28px;
+}
+
+.confirm-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.confirm-modal-actions .btn {
+    min-width: 120px;
+    justify-content: center;
+    padding: 12px 24px;
+    font-size: 15px;
+}
+
 /* ==================== TOAST ==================== */
 .toast {
     position: fixed;

@@ -4,6 +4,80 @@ let socket;
 let currentConfig = null;
 let editingIndex = -1;
 
+// ==================== MODAL DE CONFIRMAÇÃO GENÉRICO ====================
+const ConfirmModal = {
+    _resolve: null,
+
+    /**
+     * Exibe o modal de confirmação genérico.
+     * @param {Object} options
+     * @param {string} options.title - Título do modal
+     * @param {string} options.message - Mensagem descritiva
+     * @param {string} [options.confirmText='Sim'] - Texto do botão de confirmar
+     * @param {string} [options.cancelText='Não'] - Texto do botão de cancelar
+     * @param {string} [options.type='warning'] - Tipo visual: 'warning' | 'danger' | 'success' | 'info'
+     * @param {string} [options.confirmClass='btn-primary'] - Classe CSS do botão de confirmar
+     * @returns {Promise<boolean>} Resolve true se confirmou, false se cancelou
+     */
+    show({
+        title = 'Confirmação',
+        message = 'Tem certeza que deseja continuar?',
+        confirmText = 'Sim',
+        cancelText = 'Não',
+        type = 'warning',
+        confirmClass = 'btn-primary'
+    } = {}) {
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmModalTitle');
+        const messageEl = document.getElementById('confirmModalMessage');
+        const iconEl = document.getElementById('confirmModalIcon');
+        const btnYes = document.getElementById('btnConfirmYes');
+        const btnNo = document.getElementById('btnConfirmNo');
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+
+        // Ícone e cor conforme o tipo
+        const iconMap = {
+            warning: 'fas fa-exclamation-triangle',
+            danger: 'fas fa-exclamation-circle',
+            success: 'fas fa-check-circle',
+            info: 'fas fa-info-circle'
+        };
+        iconEl.innerHTML = `<i class="${iconMap[type] || iconMap.warning}"></i>`;
+        iconEl.className = 'confirm-modal-icon ' + type;
+
+        // Texto e classe dos botões
+        btnYes.innerHTML = `<i class="fas fa-check"></i> ${confirmText}`;
+        btnYes.className = `btn ${confirmClass}`;
+        btnNo.innerHTML = `<i class="fas fa-times"></i> ${cancelText}`;
+
+        modal.classList.add('active');
+
+        return new Promise((resolve) => {
+            this._resolve = resolve;
+        });
+    },
+
+    _close(result) {
+        const modal = document.getElementById('confirmModal');
+        modal.classList.remove('active');
+        if (this._resolve) {
+            this._resolve(result);
+            this._resolve = null;
+        }
+    },
+
+    init() {
+        const modal = document.getElementById('confirmModal');
+        document.getElementById('btnConfirmYes').addEventListener('click', () => this._close(true));
+        document.getElementById('btnConfirmNo').addEventListener('click', () => this._close(false));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) this._close(false);
+        });
+    }
+};
+
 // ==================== ELEMENTOS DO DOM ====================
 const elements = {
     // Status
@@ -349,7 +423,14 @@ window.editReply = function(index) {
 };
 
 window.deleteReply = async function(index) {
-    if (!confirm('Tem certeza que deseja deletar esta resposta?')) return;
+    const confirmed = await ConfirmModal.show({
+        title: 'Deletar Resposta',
+        message: 'Tem certeza que deseja deletar esta resposta automática?',
+        confirmText: 'Deletar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!confirmed) return;
     
     try {
         const result = await makeRequest(`/api/respostas/${index}`, {
@@ -458,6 +539,15 @@ async function addBlacklist() {
 
 // ==================== FUNÇÕES DE CONTROLE DO BOT ====================
 async function startBot() {
+    const confirmed = await ConfirmModal.show({
+        title: 'Iniciar Bot',
+        message: 'Deseja iniciar o bot do WhatsApp?',
+        confirmText: 'Iniciar',
+        type: 'success',
+        confirmClass: 'btn-success'
+    });
+    if (!confirmed) return;
+
     try {
         const result = await makeRequest('/api/bot/iniciar', {
             method: 'POST'
@@ -474,7 +564,14 @@ async function startBot() {
 }
 
 async function stopBot() {
-    if (!confirm('Tem certeza que deseja parar o bot?')) return;
+    const confirmed = await ConfirmModal.show({
+        title: 'Parar Bot',
+        message: 'Tem certeza que deseja parar o bot? Ele deixará de responder mensagens.',
+        confirmText: 'Parar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!confirmed) return;
     
     try {
         const result = await makeRequest('/api/bot/parar', {
@@ -492,7 +589,14 @@ async function stopBot() {
 }
 
 async function clearHistory() {
-    if (!confirm('Tem certeza que deseja limpar o histórico?')) return;
+    const confirmed = await ConfirmModal.show({
+        title: 'Limpar Histórico',
+        message: 'Tem certeza que deseja limpar todo o histórico de respostas?',
+        confirmText: 'Limpar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!confirmed) return;
     
     try {
         const result = await makeRequest('/api/historico', {
@@ -547,6 +651,7 @@ elements.blacklistModal.addEventListener('click', (e) => {
 
 // ==================== INICIALIZAÇÃO ====================
 document.addEventListener('DOMContentLoaded', () => {
+    ConfirmModal.init();
     initWebSocket();
     loadConfig();
     loadHistory();
