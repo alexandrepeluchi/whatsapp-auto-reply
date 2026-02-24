@@ -31,6 +31,17 @@ function registerRoutes(app, state, io) {
         }
     });
 
+    app.post('/api/config/reset', (req, res) => {
+        try {
+            const config = configManager.resetToDefaults();
+            console.log('🔄 Configurações restauradas para os padrões');
+            res.json({ success: true, message: 'Configurações restauradas para os padrões!', config });
+        } catch (error) {
+            console.error('❌ Erro ao restaurar configurações:', error.message);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    });
+
     // ==================== RESPOSTAS AUTOMÁTICAS ====================
 
     app.post('/api/respostas', (req, res) => {

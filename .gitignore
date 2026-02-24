@@ -4,3 +4,4 @@ node_modules/
 session/
 *.log
 .env
+config.local.json
