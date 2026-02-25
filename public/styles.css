@@ -229,6 +229,12 @@ body {
     text-transform: uppercase;
 }
 
+.reset-controls {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
 /* ==================== BUTTONS ==================== */
 .btn {
     padding: 10px 20px;
@@ -275,6 +281,15 @@ body {
 .btn-danger {
     background: var(--danger);
     color: white;
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: #333;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
 }
 
 .btn-block {

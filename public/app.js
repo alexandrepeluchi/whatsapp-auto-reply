@@ -612,6 +612,43 @@ async function clearHistory() {
     }
 }
 
+// ==================== FUNÇÕES DE RESET ====================
+async function resetConfig() {
+    // Primeira confirmação
+    const firstConfirm = await ConfirmModal.show({
+        title: 'Resetar Configurações',
+        message: 'Deseja resetar todas as configurações para os valores padrão?',
+        confirmText: 'Resetar',
+        type: 'warning',
+        confirmClass: 'btn-warning'
+    });
+    if (!firstConfirm) return;
+
+    // Segunda confirmação — aviso de irreversibilidade
+    const secondConfirm = await ConfirmModal.show({
+        title: 'Ação Irreversível',
+        message: 'Tem certeza absoluta? Após a confirmação será impossível desfazer os ajustes. Todas as configurações personalizadas serão perdidas permanentemente.',
+        confirmText: 'Tenho Certeza',
+        cancelText: 'Cancelar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!secondConfirm) return;
+
+    try {
+        const result = await makeRequest('/api/config/reset', {
+            method: 'POST'
+        });
+
+        if (result.success) {
+            await loadConfig();
+            showToast('Configurações restauradas para os padrões!', 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao resetar configurações:', error);
+    }
+}
+
 // ==================== FUNÇÕES UTILITÁRIAS ====================
 function showToast(message, type = 'success') {
     elements.toast.textContent = message;
@@ -625,6 +662,8 @@ function showToast(message, type = 'success') {
 // ==================== EVENT LISTENERS ====================
 elements.btnStart.addEventListener('click', startBot);
 elements.btnStop.addEventListener('click', stopBot);
+elements.btnResetConfig = document.getElementById('btnResetConfig');
+elements.btnResetConfig.addEventListener('click', resetConfig);
 elements.btnSaveConfig.addEventListener('click', saveConfig);
 elements.btnNewReply.addEventListener('click', () => openReplyModal());
 elements.btnNewTerm.addEventListener('click', openBlacklistModal);
