@@ -25,7 +25,8 @@ const state = {
     botStatus: 'desconectado',
     messageHistory: [],
     currentQrCode: null,
-    recentlySentMessages: new Set()
+    recentlySentMessages: new Set(),
+    botStartedAt: null
 };
 
 // Registrar rotas da API

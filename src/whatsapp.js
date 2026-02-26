@@ -94,7 +94,12 @@ function initializeBot(state, io) {
             console.log(`   fromMe: ${message.fromMe}`);
             console.log(`   isGroup: ${isGroup}`);
             console.log(`   replyOwnMessages: ${config.settings.replyOwnMessages}`);
-
+            // Ignora mensagens anteriores ao início do bot (evita processar fila de mensagens antigas)
+            const messageTimestamp = message.timestamp * 1000;
+            if (state.botStartedAt && messageTimestamp < state.botStartedAt) {
+                console.log(`   ⏭️  Ignorando: mensagem anterior ao início do bot (${new Date(messageTimestamp).toLocaleString('pt-BR')})`);
+                return;
+            }
             // Ignora mensagens que o bot acabou de enviar (evita loops)
             if (state.recentlySentMessages.has(message.id._serialized)) {
                 console.log('   ⏭️  Ignorando: mensagem enviada pelo próprio bot');
@@ -239,11 +244,13 @@ function initializeBot(state, io) {
 async function stopBot(state, io) {
     if (state.client) {
         console.log('🛑 Parando o bot...');
+        const stoppedAt = new Date().toLocaleString('pt-BR');
         await state.client.destroy();
         state.client = null;
         state.botStatus = 'desconectado';
+        state.botStartedAt = null;
         io.emit('status', state.botStatus);
-        console.log('✅ Bot parado com sucesso!');
+        console.log(`\u2705 Bot parado com sucesso! (${stoppedAt})`);
         return true;
     }
     return false;
