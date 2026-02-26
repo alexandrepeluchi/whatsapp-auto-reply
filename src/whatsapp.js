@@ -101,6 +101,20 @@ function initializeBot(state, io) {
                 return;
             }
 
+            // Anti-loop: se a mensagem é própria, verifica se o conteúdo bate com alguma resposta configurada
+            if (message.fromMe && config.settings.replyOwnMessages) {
+                const msgBody = message.body;
+                const isAutoReply = config.autoReplies.some(item => {
+                    const responses = Array.isArray(item.response) ? item.response : [item.response];
+                    return responses.some(r => r === msgBody);
+                });
+
+                if (isAutoReply) {
+                    console.log('   ⏭️  Ignorando: mensagem própria igual a uma resposta configurada (anti-loop)');
+                    return;
+                }
+            }
+
             // Verifica se deve ignorar mensagens próprias
             if (message.fromMe && !config.settings.replyOwnMessages) {
                 console.log('   ❌ Ignorando: mensagem própria e config desativada');
@@ -171,12 +185,17 @@ function initializeBot(state, io) {
                         ? Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin
                         : delayMin;
 
+                    const contactName = chat.name || message.from;
+                    console.log(`   ⏳ Aguardando ${(delay / 1000).toFixed(1)}s para responder ${contactName}...`);
+
                     setTimeout(async () => {
                         // Seleciona resposta aleatória se houver múltiplas
                         const responses = Array.isArray(item.response) ? item.response : [item.response];
                         const chosenResponse = responses[Math.floor(Math.random() * responses.length)];
 
                         const sentMessage = await message.reply(chosenResponse);
+
+                        console.log(`   ✅ Respondido: ${contactName}`);
 
                         // Adiciona ID da mensagem enviada ao Set (evita loops)
                         if (sentMessage && sentMessage.id) {
@@ -191,7 +210,7 @@ function initializeBot(state, io) {
                         const record = {
                             timestamp: new Date().toISOString(),
                             from: message.from,
-                            contact: chat.name || message.from,
+                            contact: contactName,
                             receivedMessage: message.body,
                             sentReply: chosenResponse,
                             type: isGroup ? 'grupo' : 'privado'
@@ -201,8 +220,6 @@ function initializeBot(state, io) {
                         if (state.messageHistory.length > 100) state.messageHistory.pop();
 
                         io.emit('nova-resposta', record);
-
-                        console.log(`✅ Respondido: ${chat.name || message.from}`);
                     }, delay);
 
                     break;
