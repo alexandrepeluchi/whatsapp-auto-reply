@@ -94,6 +94,7 @@ const elements = {
     
     // Stats
     totalReplies: document.getElementById('totalReplies'),
+    totalSentReplies: document.getElementById('totalSentReplies'),
     totalBlacklist: document.getElementById('totalBlacklist'),
     
     // Configurações
@@ -181,6 +182,7 @@ function initWebSocket() {
     
     socket.on('nova-resposta', (record) => {
         addHistoryItem(record);
+        updateSentRepliesCount();
     });
     
     socket.on('disconnect', () => {
@@ -298,9 +300,15 @@ async function loadHistory() {
         } else {
             history.forEach(item => addHistoryItem(item));
         }
+        updateSentRepliesCount();
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
     }
+}
+
+function updateSentRepliesCount() {
+    const items = elements.historyContainer.querySelectorAll('.historico-item');
+    elements.totalSentReplies.textContent = items.length;
 }
 
 // ==================== FUNÇÕES DE RENDERIZAÇÃO ====================
@@ -698,6 +706,7 @@ async function clearHistory() {
         
         if (result.success) {
             elements.historyContainer.innerHTML = '<p class="text-muted">Nenhuma resposta enviada ainda</p>';
+            elements.totalSentReplies.textContent = '0';
             showToast('Histórico limpo com sucesso!', 'success');
         }
     } catch (error) {
