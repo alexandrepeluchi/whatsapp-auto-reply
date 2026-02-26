@@ -78,6 +78,13 @@
                                     <span class="stat-label">Termos na Lista Negra</span>
                                 </div>
                             </div>
+                            <div class="stat-item">
+                                <i class="fas fa-users-slash"></i>
+                                <div>
+                                    <span class="stat-value" id="totalGroupBlacklist">0</span>
+                                    <span class="stat-label">Grupos na Lista Negra</span>
+                                </div>
+                            </div>
                         </div>
                         <div class="bot-controls reset-controls">
                             <button class="btn btn-warning btn-block" id="btnResetConfig">
@@ -165,6 +172,21 @@
                 </div>
             </section>
 
+            <!-- Seção de Lista Negra de Grupos -->
+            <section class="card">
+                <div class="card-header">
+                    <i class="fas fa-users-slash"></i>
+                    <h2>Lista Negra de Grupos</h2>
+                    <button class="btn btn-primary" id="btnNewGroupTerm">
+                        <i class="fas fa-plus"></i> Adicionar Grupo
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p class="text-info"><i class="fas fa-info-circle"></i> O bot não responderá em grupos cujo nome contenha algum destes termos.</p>
+                    <div id="groupBlacklistContainer" class="lista-negra-container"></div>
+                </div>
+            </section>
+
             <!-- Seção de Histórico -->
             <section class="card">
                 <div class="card-header">
@@ -223,6 +245,26 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="btnCancelBlacklist">Cancelar</button>
                 <button class="btn btn-primary" id="btnSaveBlacklist">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar Grupo à Lista Negra -->
+    <div class="modal" id="groupBlacklistModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Adicionar Grupo à Lista Negra</h3>
+                <button class="modal-close" id="btnCloseGroupBlacklistModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nome ou parte do nome do grupo:</label>
+                    <input type="text" id="inputGroupBlacklist" placeholder="Ex: promoções, vendas">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btnCancelGroupBlacklist">Cancelar</button>
+                <button class="btn btn-primary" id="btnSaveGroupBlacklist">Adicionar</button>
             </div>
         </div>
     </div>

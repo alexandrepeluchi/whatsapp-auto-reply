@@ -482,6 +482,23 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
+.group-blacklist-item {
+    background: var(--secondary);
+}
+
+.text-info {
+    color: var(--gray);
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.text-info i {
+    color: var(--secondary);
+}
+
 /* ==================== HISTÓRICO ==================== */
 .historico-container {
     max-height: 500px;

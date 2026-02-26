@@ -121,7 +121,20 @@ function initializeBot(state, io) {
                 console.log('   ✅ Mensagem própria COM config ativa - processando...');
             }
 
-            // Verifica blacklist
+            // Verifica blacklist de grupos
+            if (isGroup && config.groupBlacklist && config.groupBlacklist.length > 0) {
+                const groupName = (chat.name || '').toLowerCase();
+                const isGroupBlacklisted = config.groupBlacklist.some(term =>
+                    groupName.includes(term.toLowerCase())
+                );
+
+                if (isGroupBlacklisted) {
+                    console.log(`   ❌ Ignorando: grupo "${chat.name}" está na lista negra de grupos`);
+                    return;
+                }
+            }
+
+            // Verifica blacklist de palavras
             const messageText = message.body.toLowerCase();
             const isBlacklisted = config.blacklist.some(term =>
                 messageText.includes(term.toLowerCase())

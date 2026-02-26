@@ -113,6 +113,18 @@ const elements = {
     blacklistContainer: document.getElementById('blacklistContainer'),
     btnNewTerm: document.getElementById('btnNewTerm'),
     
+    // Lista Negra de Grupos
+    groupBlacklistContainer: document.getElementById('groupBlacklistContainer'),
+    btnNewGroupTerm: document.getElementById('btnNewGroupTerm'),
+    totalGroupBlacklist: document.getElementById('totalGroupBlacklist'),
+    
+    // Modal Lista Negra de Grupos
+    groupBlacklistModal: document.getElementById('groupBlacklistModal'),
+    inputGroupBlacklist: document.getElementById('inputGroupBlacklist'),
+    btnCloseGroupBlacklistModal: document.getElementById('btnCloseGroupBlacklistModal'),
+    btnCancelGroupBlacklist: document.getElementById('btnCancelGroupBlacklist'),
+    btnSaveGroupBlacklist: document.getElementById('btnSaveGroupBlacklist'),
+    
     // Histórico
     historyContainer: document.getElementById('historyContainer'),
     btnClearHistory: document.getElementById('btnClearHistory'),
@@ -243,10 +255,12 @@ async function loadConfig() {
         // Atualiza stats
         elements.totalReplies.textContent = config.autoReplies.length;
         elements.totalBlacklist.textContent = config.blacklist.length;
+        elements.totalGroupBlacklist.textContent = (config.groupBlacklist || []).length;
         
         // Renderiza listas
         renderReplies();
         renderBlacklist();
+        renderGroupBlacklist();
     } catch (error) {
         console.error('Erro ao carregar configurações:', error);
     }
@@ -350,6 +364,29 @@ function renderBlacklist() {
     });
 }
 
+function renderGroupBlacklist() {
+    elements.groupBlacklistContainer.innerHTML = '';
+    
+    const groupBlacklist = currentConfig.groupBlacklist || [];
+    
+    if (groupBlacklist.length === 0) {
+        elements.groupBlacklistContainer.innerHTML = '<p class="text-muted">Nenhum grupo na lista negra</p>';
+        return;
+    }
+    
+    groupBlacklist.forEach((term, index) => {
+        const span = document.createElement('span');
+        span.className = 'lista-negra-item group-blacklist-item';
+        span.innerHTML = `
+            ${term}
+            <button onclick="removeGroupBlacklist(${index})">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        elements.groupBlacklistContainer.appendChild(span);
+    });
+}
+
 function addHistoryItem(item) {
     const firstItem = elements.historyContainer.querySelector('.text-muted');
     if (firstItem) {
@@ -415,6 +452,15 @@ function openBlacklistModal() {
 
 function closeBlacklistModal() {
     elements.blacklistModal.classList.remove('active');
+}
+
+function openGroupBlacklistModal() {
+    elements.inputGroupBlacklist.value = '';
+    elements.groupBlacklistModal.classList.add('active');
+}
+
+function closeGroupBlacklistModal() {
+    elements.groupBlacklistModal.classList.remove('active');
 }
 
 // ==================== FUNÇÕES DE RESPOSTAS ====================
@@ -534,6 +580,53 @@ async function addBlacklist() {
         }
     } catch (error) {
         console.error('Erro ao adicionar termo:', error);
+    }
+}
+
+// ==================== FUNÇÕES DE LISTA NEGRA DE GRUPOS ====================
+window.removeGroupBlacklist = async function(index) {
+    try {
+        if (!currentConfig.groupBlacklist) currentConfig.groupBlacklist = [];
+        currentConfig.groupBlacklist.splice(index, 1);
+        
+        const result = await makeRequest('/api/config', {
+            method: 'POST',
+            body: JSON.stringify(currentConfig)
+        });
+        
+        if (result.success) {
+            await loadConfig();
+            showToast('Grupo removido da lista negra!', 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao remover grupo:', error);
+    }
+};
+
+async function addGroupBlacklist() {
+    const term = elements.inputGroupBlacklist.value.trim();
+    
+    if (!term) {
+        showToast('Digite o nome ou parte do nome do grupo!', 'warning');
+        return;
+    }
+    
+    try {
+        if (!currentConfig.groupBlacklist) currentConfig.groupBlacklist = [];
+        currentConfig.groupBlacklist.push(term);
+        
+        const result = await makeRequest('/api/config', {
+            method: 'POST',
+            body: JSON.stringify(currentConfig)
+        });
+        
+        if (result.success) {
+            await loadConfig();
+            closeGroupBlacklistModal();
+            showToast('Grupo adicionado à lista negra!', 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao adicionar grupo:', error);
     }
 }
 
@@ -667,6 +760,7 @@ elements.btnResetConfig.addEventListener('click', resetConfig);
 elements.btnSaveConfig.addEventListener('click', saveConfig);
 elements.btnNewReply.addEventListener('click', () => openReplyModal());
 elements.btnNewTerm.addEventListener('click', openBlacklistModal);
+elements.btnNewGroupTerm.addEventListener('click', openGroupBlacklistModal);
 elements.btnClearHistory.addEventListener('click', clearHistory);
 
 // Modal Resposta
@@ -679,6 +773,11 @@ elements.btnCloseBlacklistModal.addEventListener('click', closeBlacklistModal);
 elements.btnCancelBlacklist.addEventListener('click', closeBlacklistModal);
 elements.btnSaveBlacklist.addEventListener('click', addBlacklist);
 
+// Modal Lista Negra de Grupos
+elements.btnCloseGroupBlacklistModal.addEventListener('click', closeGroupBlacklistModal);
+elements.btnCancelGroupBlacklist.addEventListener('click', closeGroupBlacklistModal);
+elements.btnSaveGroupBlacklist.addEventListener('click', addGroupBlacklist);
+
 // Fechar modal ao clicar fora
 elements.replyModal.addEventListener('click', (e) => {
     if (e.target === elements.replyModal) closeReplyModal();
@@ -686,6 +785,10 @@ elements.replyModal.addEventListener('click', (e) => {
 
 elements.blacklistModal.addEventListener('click', (e) => {
     if (e.target === elements.blacklistModal) closeBlacklistModal();
+});
+
+elements.groupBlacklistModal.addEventListener('click', (e) => {
+    if (e.target === elements.groupBlacklistModal) closeGroupBlacklistModal();
 });
 
 // ==================== INICIALIZAÇÃO ====================

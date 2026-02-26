@@ -19,7 +19,7 @@ module.exports = {
     }
   ],
 
-  // Lista de padrões para ignorar (blacklist)
+  // Lista de padrões para ignorar (blacklist de palavras)
   // Mensagens contendo essas palavras não serão respondidas pelo bot
   blacklist: [
     'oferta imperdível',
@@ -31,6 +31,11 @@ module.exports = {
     'bot:',
     'sistema automático'
   ],
+
+  // Lista negra de grupos
+  // Se o nome do grupo contiver algum desses termos, o bot não responderá
+  groupBlacklist: [],
+
 
   // Configurações gerais
   settings: {
