@@ -932,13 +932,19 @@ body {
     border-radius: 8px;
     box-shadow: var(--shadow-lg);
     transform: translateY(120%);
-    transition: transform 0.3s;
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.3s, opacity 0.3s, visibility 0.3s;
     z-index: 2000;
     max-width: 400px;
+    pointer-events: none;
 }
 
 .toast.show {
     transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .toast.success {

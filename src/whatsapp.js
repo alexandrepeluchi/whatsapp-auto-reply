@@ -251,8 +251,28 @@ function initializeBot(state, io) {
         }
     });
 
-    // Inicializa o cliente
-    state.client.initialize();
+    // Inicializa o cliente com tratamento de erro
+    state.client.initialize().catch(async (err) => {
+        console.error('❌ Erro ao inicializar o bot:', err.message);
+        console.log('🔄 Tentando reiniciar em 5 segundos...');
+        
+        // Limpa o cliente com erro
+        try {
+            if (state.client) {
+                await state.client.destroy().catch(() => {});
+            }
+        } catch (e) { /* ignora */ }
+        
+        state.client = null;
+        state.botStatus = 'desconectado';
+        io.emit('status', state.botStatus);
+        
+        // Tenta reiniciar automaticamente após 5 segundos
+        setTimeout(() => {
+            console.log('🔄 Reiniciando bot automaticamente...');
+            initializeBot(state, io);
+        }, 5000);
+    });
 }
 
 async function stopBot(state, io) {
