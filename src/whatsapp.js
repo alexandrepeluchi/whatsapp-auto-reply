@@ -164,10 +164,12 @@ function initializeBot(state, io) {
 
                 if (triggerFound) {
                     console.log(`   ✅ Gatilho encontrado! Preparando resposta...`);
-                    // Delay aleatório
+                    // Delay: fixo se max não definido, aleatório se ambos definidos
                     const delayMin = config.settings.delayRange.min * 1000;
-                    const delayMax = config.settings.delayRange.max * 1000;
-                    const delay = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+                    const delayMax = config.settings.delayRange.max ? config.settings.delayRange.max * 1000 : null;
+                    const delay = delayMax
+                        ? Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin
+                        : delayMin;
 
                     setTimeout(async () => {
                         // Seleciona resposta aleatória se houver múltiplas

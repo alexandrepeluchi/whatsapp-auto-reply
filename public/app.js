@@ -104,7 +104,6 @@ const elements = {
     wholeWord: document.getElementById('wholeWord'),
     delayMin: document.getElementById('delayMin'),
     delayMax: document.getElementById('delayMax'),
-    btnSaveConfig: document.getElementById('btnSaveConfig'),
     
     // Respostas
     repliesList: document.getElementById('repliesList'),
@@ -252,7 +251,7 @@ async function loadConfig() {
         elements.caseSensitive.checked = config.settings.caseSensitive;
         elements.wholeWord.checked = config.settings.wholeWord;
         elements.delayMin.value = config.settings.delayRange.min;
-        elements.delayMax.value = config.settings.delayRange.max;
+        elements.delayMax.value = config.settings.delayRange.max || '';
         
         // Atualiza stats
         elements.totalReplies.textContent = config.autoReplies.length;
@@ -274,20 +273,22 @@ async function saveConfig() {
         currentConfig.settings.replyInPrivate = elements.replyPrivate.checked;
         currentConfig.settings.caseSensitive = elements.caseSensitive.checked;
         currentConfig.settings.wholeWord = elements.wholeWord.checked;
-        currentConfig.settings.delayRange.min = parseInt(elements.delayMin.value);
-        currentConfig.settings.delayRange.max = parseInt(elements.delayMax.value);
+        currentConfig.settings.delayRange.min = parseInt(elements.delayMin.value) || 1;
+        currentConfig.settings.delayRange.max = elements.delayMax.value ? parseInt(elements.delayMax.value) : null;
         
-        const result = await makeRequest('/api/config', {
+        await makeRequest('/api/config', {
             method: 'POST',
             body: JSON.stringify(currentConfig)
         });
-        
-        if (result.success) {
-            showToast('Configurações salvas com sucesso!', 'success');
-        }
     } catch (error) {
         console.error('Erro ao salvar configurações:', error);
     }
+}
+
+let _saveConfigTimeout = null;
+function autoSaveConfig() {
+    clearTimeout(_saveConfigTimeout);
+    _saveConfigTimeout = setTimeout(() => saveConfig(), 400);
 }
 
 async function loadHistory() {
@@ -766,7 +767,15 @@ elements.btnStart.addEventListener('click', startBot);
 elements.btnStop.addEventListener('click', stopBot);
 elements.btnResetConfig = document.getElementById('btnResetConfig');
 elements.btnResetConfig.addEventListener('click', resetConfig);
-elements.btnSaveConfig.addEventListener('click', saveConfig);
+
+// Auto-save nas configurações
+elements.replyGroups.addEventListener('change', autoSaveConfig);
+elements.replyPrivate.addEventListener('change', autoSaveConfig);
+elements.caseSensitive.addEventListener('change', autoSaveConfig);
+elements.wholeWord.addEventListener('change', autoSaveConfig);
+elements.delayMin.addEventListener('input', autoSaveConfig);
+elements.delayMax.addEventListener('input', autoSaveConfig);
+
 elements.btnNewReply.addEventListener('click', () => openReplyModal());
 elements.btnNewTerm.addEventListener('click', openBlacklistModal);
 elements.btnNewGroupTerm.addEventListener('click', openGroupBlacklistModal);

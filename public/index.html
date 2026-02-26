@@ -139,14 +139,12 @@
                         <div class="delay-config">
                             <label>Delay de Resposta (segundos):</label>
                             <div class="input-group">
-                                <input type="number" id="delayMin" placeholder="Mínimo" min="1">
+                                <input type="number" id="delayMin" placeholder="Tempo fixo" min="1">
                                 <span>até</span>
-                                <input type="number" id="delayMax" placeholder="Máximo" min="1">
+                                <input type="number" id="delayMax" placeholder="Aleatório (opcional)" min="1">
                             </div>
+                            <small class="delay-hint" id="delayHint">Preencha apenas o primeiro campo para delay fixo, ou ambos para aleatório.</small>
                         </div>
-                        <button class="btn btn-primary btn-block" id="btnSaveConfig">
-                            <i class="fas fa-save"></i> Salvar Configurações
-                        </button>
                     </div>
                 </div>
             </div>
