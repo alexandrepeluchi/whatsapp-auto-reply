@@ -24,6 +24,7 @@ const state = {
     client: null,
     botStatus: 'desconectado',
     messageHistory: [],
+    allMessages: [],
     currentQrCode: null,
     recentlySentMessages: new Set(),
     botStartedAt: null

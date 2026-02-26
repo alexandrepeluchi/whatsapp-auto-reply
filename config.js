@@ -36,17 +36,16 @@ module.exports = {
   // Se o nome do grupo contiver algum desses termos, o bot não responderá
   groupBlacklist: [],
 
-
   // Configurações gerais
   settings: {
     replyInGroups: true,          // Responder em grupos
     replyInPrivate: false,        // Responder em conversas privadas
-    replyOwnMessages: true,      // Responder às suas próprias mensagens
+    replyOwnMessages: false,      // Responder às suas próprias mensagens
     caseSensitive: false,         // Diferenciar maiúsculas/minúsculas
     wholeWord: false,             // Exigir palavra completa (true) ou permitir parte da palavra (false)
     delayRange: {
-      min: 10,                    // Delay mínimo em segundos antes de responder
-      max: 20                     // Delay máximo em segundos antes de responder
+      min: 1,                    // Delay mínimo em segundos antes de responder
+      max: 5                     // Delay máximo em segundos antes de responder
     }
   }
 };

@@ -46,6 +46,22 @@
                 </div>
             </section>
 
+            <!-- Seção de Mensagens Respondidas -->
+            <section class="card">
+                <div class="card-header">
+                    <i class="fas fa-reply-all"></i>
+                    <h2>Mensagens Respondidas</h2>
+                    <button class="btn btn-danger" id="btnClearHistory">
+                        <i class="fas fa-trash"></i> Limpar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="historyContainer" class="historico-container">
+                        <p class="text-muted">Nenhuma resposta enviada ainda</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Grid de Cards -->
             <div class="dashboard-grid">
                 <!-- Card de Controle do Bot -->
@@ -137,13 +153,30 @@
                             </label>
                         </div>
                         <div class="delay-config">
-                            <label>Delay de Resposta (segundos):</label>
-                            <div class="input-group">
-                                <input type="number" id="delayMin" placeholder="Tempo fixo" min="1">
-                                <span>até</span>
-                                <input type="number" id="delayMax" placeholder="Aleatório (opcional)" min="1">
+                            <label><i class="fas fa-clock"></i> Delay de Resposta</label>
+                            <div class="delay-fields">
+                                <div class="delay-field">
+                                    <span class="delay-field-label">Fixo / Mínimo</span>
+                                    <div class="delay-input-wrapper">
+                                        <input type="number" id="delayMin" placeholder="10" min="1">
+                                        <span class="delay-unit">seg</span>
+                                    </div>
+                                </div>
+                                <div class="delay-separator">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                                <div class="delay-field">
+                                    <span class="delay-field-label">Máximo <span class="delay-optional">(opcional)</span></span>
+                                    <div class="delay-input-wrapper">
+                                        <input type="number" id="delayMax" placeholder="—" min="1">
+                                        <span class="delay-unit">seg</span>
+                                    </div>
+                                </div>
                             </div>
-                            <small class="delay-hint" id="delayHint">Preencha apenas o primeiro campo para delay fixo, ou ambos para aleatório.</small>
+                            <div class="delay-preview" id="delayPreview">
+                                <i class="fas fa-info-circle"></i>
+                                <span id="delayPreviewText">Delay fixo</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -192,18 +225,18 @@
                 </div>
             </section>
 
-            <!-- Seção de Histórico -->
+            <!-- Seção de Histórico de Mensagens -->
             <section class="card">
                 <div class="card-header">
-                    <i class="fas fa-history"></i>
-                    <h2>Histórico de Respostas</h2>
-                    <button class="btn btn-danger" id="btnClearHistory">
+                    <i class="fas fa-envelope-open-text"></i>
+                    <h2>Histórico de Mensagens</h2>
+                    <button class="btn btn-danger" id="btnClearMessages">
                         <i class="fas fa-trash"></i> Limpar
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="historyContainer" class="historico-container">
-                        <p class="text-muted">Nenhuma resposta enviada ainda</p>
+                    <div id="messagesContainer" class="historico-container mensagens-container">
+                        <p class="text-muted">Nenhuma mensagem recebida ainda</p>
                     </div>
                 </div>
             </section>

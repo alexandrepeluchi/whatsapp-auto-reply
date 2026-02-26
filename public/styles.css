@@ -178,7 +178,7 @@ body {
 /* ==================== DASHBOARD GRID ==================== */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
     gap: 30px;
     margin-bottom: 30px;
 }
@@ -363,40 +363,140 @@ body {
 .delay-config {
     margin-top: 20px;
     margin-bottom: 24px;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
-.delay-config label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: var(--dark);
-}
-
-.delay-hint {
-    display: block;
-    margin-top: 8px;
-    font-size: 12px;
-    color: var(--gray);
-    font-style: italic;
-}
-
-.input-group {
+.delay-config > label {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: var(--dark);
+    font-size: 14px;
 }
 
-.input-group input {
-    flex: 1;
-    padding: 10px;
+.delay-config > label i {
+    color: var(--primary);
+    font-size: 16px;
+}
+
+.delay-fields {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: var(--light);
+    padding: 14px;
+    border-radius: 10px;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 14px;
+    overflow: hidden;
+}
+
+.delay-field {
+    flex: 1;
     min-width: 0;
 }
 
-.input-group span {
+.delay-field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     color: var(--gray);
+    margin-bottom: 6px;
+}
+
+.delay-optional {
+    font-weight: 400;
+    text-transform: none;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.delay-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.delay-input-wrapper:focus-within {
+    border-color: var(--primary);
+}
+
+.delay-input-wrapper input {
+    flex: 1;
+    border: none;
+    padding: 8px 6px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dark);
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+    outline: none;
+    background: transparent;
+    -moz-appearance: textfield;
+}
+
+.delay-input-wrapper input::-webkit-outer-spin-button,
+.delay-input-wrapper input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.delay-input-wrapper input::placeholder {
+    color: var(--border);
+    font-weight: 400;
+}
+
+.delay-unit {
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray);
+    background: var(--light);
+    border-left: 1px solid var(--border);
+    user-select: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.delay-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray);
+    font-size: 14px;
+    padding-bottom: 2px;
+    opacity: 0.5;
+}
+
+.delay-preview {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(37, 211, 102, 0.08);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--secondary);
+    transition: all 0.2s;
+}
+
+.delay-preview i {
+    font-size: 12px;
+}
+
+.delay-preview.random {
+    background: rgba(255, 193, 7, 0.1);
+    color: #b38600;
 }
 
 /* ==================== RESPOSTAS AUTOMÁTICAS ==================== */
@@ -570,6 +670,81 @@ body {
 .historico-tipo.privado {
     background: var(--secondary);
     color: white;
+}
+
+/* ==================== HISTÓRICO DE MENSAGENS ==================== */
+.mensagens-container {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.mensagem-item {
+    padding: 12px 16px;
+    background: var(--light);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 4px solid var(--gray);
+    transition: background 0.15s;
+}
+
+.mensagem-item.received {
+    border-left-color: var(--primary);
+}
+
+.mensagem-item.sent {
+    border-left-color: var(--secondary);
+}
+
+.mensagem-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 8px;
+}
+
+.mensagem-header > div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.mensagem-direction {
+    font-size: 11px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mensagem-direction.received {
+    background: rgba(37, 211, 102, 0.15);
+    color: var(--primary);
+}
+
+.mensagem-direction.sent {
+    background: rgba(0, 150, 255, 0.12);
+    color: #0096ff;
+}
+
+.mensagem-contato {
+    font-weight: 600;
+    color: var(--dark);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mensagem-body {
+    font-size: 14px;
+    color: var(--dark);
+    word-break: break-word;
+    line-height: 1.4;
 }
 
 .text-muted {
@@ -822,17 +997,34 @@ body {
         grid-template-columns: 1fr;
     }
 
-    .delay-config .input-group {
-        gap: 6px;
+    .delay-config .delay-fields {
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
     }
 
-    .delay-config .input-group input {
-        padding: 8px 6px;
-        font-size: 13px;
+    .delay-separator {
+        transform: rotate(90deg);
+        padding: 0;
+        margin: -2px 0;
     }
 
-    .delay-config .input-group span {
+    .delay-field {
+        width: 100%;
+    }
+
+    .delay-input-wrapper input {
+        font-size: 15px;
+        padding: 8px 4px;
+    }
+
+    .delay-preview {
         font-size: 12px;
+        padding: 6px 10px;
+    }
+
+    .card-body {
+        padding: 16px;
     }
 
     .resposta-header {

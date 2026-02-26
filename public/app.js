@@ -104,6 +104,8 @@ const elements = {
     wholeWord: document.getElementById('wholeWord'),
     delayMin: document.getElementById('delayMin'),
     delayMax: document.getElementById('delayMax'),
+    delayPreview: document.getElementById('delayPreview'),
+    delayPreviewText: document.getElementById('delayPreviewText'),
     
     // Respostas
     repliesList: document.getElementById('repliesList'),
@@ -128,6 +130,10 @@ const elements = {
     // Histórico
     historyContainer: document.getElementById('historyContainer'),
     btnClearHistory: document.getElementById('btnClearHistory'),
+    
+    // Histórico de Mensagens
+    messagesContainer: document.getElementById('messagesContainer'),
+    btnClearMessages: document.getElementById('btnClearMessages'),
     
     // Modal Resposta
     replyModal: document.getElementById('replyModal'),
@@ -182,6 +188,10 @@ function initWebSocket() {
     socket.on('nova-resposta', (record) => {
         addHistoryItem(record);
         updateSentRepliesCount();
+    });
+    
+    socket.on('nova-mensagem', (record) => {
+        addMessageItem(record);
     });
     
     socket.on('disconnect', () => {
@@ -252,6 +262,7 @@ async function loadConfig() {
         elements.wholeWord.checked = config.settings.wholeWord;
         elements.delayMin.value = config.settings.delayRange.min;
         elements.delayMax.value = config.settings.delayRange.max || '';
+        updateDelayPreview();
         
         // Atualiza stats
         elements.totalReplies.textContent = config.autoReplies.length;
@@ -264,6 +275,29 @@ async function loadConfig() {
         renderGroupBlacklist();
     } catch (error) {
         console.error('Erro ao carregar configurações:', error);
+    }
+}
+
+function updateDelayPreview() {
+    const min = parseInt(elements.delayMin.value);
+    const max = parseInt(elements.delayMax.value);
+    const preview = elements.delayPreview;
+    const text = elements.delayPreviewText;
+
+    if (!min && !max) {
+        text.textContent = 'Defina o tempo de delay';
+        preview.className = 'delay-preview';
+    } else if (min && !max) {
+        text.textContent = `Delay fixo de ${min} segundo${min !== 1 ? 's' : ''}`;
+        preview.className = 'delay-preview';
+    } else if (min && max) {
+        if (max <= min) {
+            text.textContent = 'O máximo deve ser maior que o mínimo';
+            preview.className = 'delay-preview';
+        } else {
+            text.textContent = `Delay aleatório entre ${min}s e ${max}s`;
+            preview.className = 'delay-preview random';
+        }
     }
 }
 
@@ -304,6 +338,21 @@ async function loadHistory() {
         updateSentRepliesCount();
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
+    }
+}
+
+async function loadMessages() {
+    try {
+        const messages = await makeRequest('/api/mensagens');
+        elements.messagesContainer.innerHTML = '';
+        
+        if (messages.length === 0) {
+            elements.messagesContainer.innerHTML = '<p class="text-muted">Nenhuma mensagem recebida ainda</p>';
+        } else {
+            messages.forEach(item => addMessageItem(item));
+        }
+    } catch (error) {
+        console.error('Erro ao carregar mensagens:', error);
     }
 }
 
@@ -425,6 +474,60 @@ function addHistoryItem(item) {
     `;
     
     elements.historyContainer.insertBefore(div, elements.historyContainer.firstChild);
+}
+
+function addMessageItem(item) {
+    const firstItem = elements.messagesContainer.querySelector('.text-muted');
+    if (firstItem) {
+        elements.messagesContainer.innerHTML = '';
+    }
+    
+    const div = document.createElement('div');
+    div.className = `mensagem-item ${item.fromMe ? 'sent' : 'received'}`;
+    
+    const date = new Date(item.timestamp);
+    const formattedDate = date.toLocaleString('pt-BR');
+    
+    const directionIcon = item.fromMe ? 'fa-arrow-up' : 'fa-arrow-down';
+    const directionLabel = item.fromMe ? 'Enviada' : 'Recebida';
+    
+    div.innerHTML = `
+        <div class="mensagem-header">
+            <div>
+                <i class="fas ${directionIcon} mensagem-direction ${item.fromMe ? 'sent' : 'received'}"></i>
+                <span class="mensagem-contato">${item.contact}</span>
+                <span class="historico-tipo ${item.type}">${item.type}</span>
+            </div>
+            <span class="historico-timestamp">${formattedDate}</span>
+        </div>
+        <div class="mensagem-body">${item.body}</div>
+    `;
+    
+    elements.messagesContainer.insertBefore(div, elements.messagesContainer.firstChild);
+}
+
+async function clearMessages() {
+    const confirmed = await ConfirmModal.show({
+        title: 'Limpar Mensagens',
+        message: 'Tem certeza que deseja limpar todo o histórico de mensagens?',
+        confirmText: 'Limpar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!confirmed) return;
+    
+    try {
+        const result = await makeRequest('/api/mensagens', {
+            method: 'DELETE'
+        });
+        
+        if (result.success) {
+            elements.messagesContainer.innerHTML = '<p class="text-muted">Nenhuma mensagem recebida ainda</p>';
+            showToast('Histórico de mensagens limpo com sucesso!', 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao limpar mensagens:', error);
+    }
 }
 
 // ==================== FUNÇÕES DE MODAL ====================
@@ -773,13 +876,14 @@ elements.replyGroups.addEventListener('change', autoSaveConfig);
 elements.replyPrivate.addEventListener('change', autoSaveConfig);
 elements.caseSensitive.addEventListener('change', autoSaveConfig);
 elements.wholeWord.addEventListener('change', autoSaveConfig);
-elements.delayMin.addEventListener('input', autoSaveConfig);
-elements.delayMax.addEventListener('input', autoSaveConfig);
+elements.delayMin.addEventListener('input', () => { updateDelayPreview(); autoSaveConfig(); });
+elements.delayMax.addEventListener('input', () => { updateDelayPreview(); autoSaveConfig(); });
 
 elements.btnNewReply.addEventListener('click', () => openReplyModal());
 elements.btnNewTerm.addEventListener('click', openBlacklistModal);
 elements.btnNewGroupTerm.addEventListener('click', openGroupBlacklistModal);
 elements.btnClearHistory.addEventListener('click', clearHistory);
+elements.btnClearMessages.addEventListener('click', clearMessages);
 
 // Modal Resposta
 elements.btnCloseModal.addEventListener('click', closeReplyModal);
@@ -815,4 +919,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebSocket();
     loadConfig();
     loadHistory();
+    loadMessages();
 });

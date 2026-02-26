@@ -101,8 +101,20 @@ function registerRoutes(app, state, io) {
 
     app.delete('/api/historico', (req, res) => {
         state.messageHistory = [];
-        console.log('🧹 Histórico de mensagens limpo via dashboard');
+        console.log('🧹 Histórico de respostas limpo via dashboard');
         res.json({ success: true, message: 'Histórico limpo com sucesso!' });
+    });
+
+    // ==================== HISTÓRICO DE MENSAGENS ====================
+
+    app.get('/api/mensagens', (req, res) => {
+        res.json(state.allMessages);
+    });
+
+    app.delete('/api/mensagens', (req, res) => {
+        state.allMessages = [];
+        console.log('🧹 Histórico de mensagens limpo via dashboard');
+        res.json({ success: true, message: 'Histórico de mensagens limpo com sucesso!' });
     });
 
     // ==================== CONTROLE DO BOT ====================

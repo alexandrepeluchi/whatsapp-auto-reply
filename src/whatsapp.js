@@ -55,6 +55,7 @@ function initializeBot(state, io) {
         console.log(`   - Responder próprias mensagens: ${config.settings.replyOwnMessages ? 'SIM' : 'NÃO'}`);
         console.log(`   - Total de gatilhos: ${config.autoReplies.length}\n`);
         state.botStatus = 'conectado';
+        state.botStartedAt = Date.now();
         state.currentQrCode = null;
         io.emit('status', state.botStatus);
         io.emit('qrcode', null);
@@ -105,6 +106,20 @@ function initializeBot(state, io) {
                 console.log('   ⏭️  Ignorando: mensagem enviada pelo próprio bot');
                 return;
             }
+
+            // Registra a mensagem no histórico de mensagens (todas as mensagens)
+            const contactName = chat.name || message.from;
+            const msgRecord = {
+                timestamp: new Date().toISOString(),
+                from: message.from,
+                contact: contactName,
+                body: message.body,
+                fromMe: message.fromMe,
+                type: isGroup ? 'grupo' : 'privado'
+            };
+            state.allMessages.unshift(msgRecord);
+            if (state.allMessages.length > 200) state.allMessages.pop();
+            io.emit('nova-mensagem', msgRecord);
 
             // Anti-loop: se a mensagem é própria, verifica se o conteúdo bate com alguma resposta configurada
             if (message.fromMe && config.settings.replyOwnMessages) {
@@ -190,7 +205,6 @@ function initializeBot(state, io) {
                         ? Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin
                         : delayMin;
 
-                    const contactName = chat.name || message.from;
                     console.log(`   ⏳ Aguardando ${(delay / 1000).toFixed(1)}s para responder ${contactName}...`);
 
                     setTimeout(async () => {
