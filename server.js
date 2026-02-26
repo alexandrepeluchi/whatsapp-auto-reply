@@ -24,8 +24,10 @@ const state = {
     client: null,
     botStatus: 'desconectado',
     messageHistory: [],
+    allMessages: [],
     currentQrCode: null,
-    recentlySentMessages: new Set()
+    recentlySentMessages: new Set(),
+    botStartedAt: null
 };
 
 // Registrar rotas da API
@@ -47,6 +49,16 @@ io.on('connection', (socket) => {
 });
 
 // ==================== INICIALIZAÇÃO ====================
+
+// Handler global para evitar crash por erros não tratados
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️  Unhandled Rejection:', reason?.message || reason);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('⚠️  Uncaught Exception:', err.message);
+    // Não encerra o processo — apenas loga
+});
 
 const PORT = process.env.PORT || 3000;
 

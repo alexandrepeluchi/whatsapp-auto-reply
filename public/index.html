@@ -46,6 +46,22 @@
                 </div>
             </section>
 
+            <!-- Seção de Mensagens Respondidas -->
+            <section class="card">
+                <div class="card-header">
+                    <i class="fas fa-reply-all"></i>
+                    <h2>Mensagens Respondidas</h2>
+                    <button class="btn btn-danger" id="btnClearHistory">
+                        <i class="fas fa-trash"></i> Limpar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="historyContainer" class="historico-container">
+                        <p class="text-muted">Nenhuma resposta enviada ainda</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Grid de Cards -->
             <div class="dashboard-grid">
                 <!-- Card de Controle do Bot -->
@@ -72,12 +88,31 @@
                                 </div>
                             </div>
                             <div class="stat-item">
+                                <i class="fas fa-paper-plane"></i>
+                                <div>
+                                    <span class="stat-value" id="totalSentReplies">0</span>
+                                    <span class="stat-label">Respostas Enviadas</span>
+                                </div>
+                            </div>
+                            <div class="stat-item">
                                 <i class="fas fa-ban"></i>
                                 <div>
                                     <span class="stat-value" id="totalBlacklist">0</span>
                                     <span class="stat-label">Termos na Lista Negra</span>
                                 </div>
                             </div>
+                            <div class="stat-item">
+                                <i class="fas fa-users-slash"></i>
+                                <div>
+                                    <span class="stat-value" id="totalGroupBlacklist">0</span>
+                                    <span class="stat-label">Grupos na Lista Negra</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bot-controls reset-controls">
+                            <button class="btn btn-warning btn-block" id="btnResetConfig">
+                                <i class="fas fa-undo-alt"></i> Resetar Configurações
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -118,16 +153,31 @@
                             </label>
                         </div>
                         <div class="delay-config">
-                            <label>Delay de Resposta (segundos):</label>
-                            <div class="input-group">
-                                <input type="number" id="delayMin" placeholder="Mínimo" min="1">
-                                <span>até</span>
-                                <input type="number" id="delayMax" placeholder="Máximo" min="1">
+                            <label><i class="fas fa-clock"></i> Delay de Resposta</label>
+                            <div class="delay-fields">
+                                <div class="delay-field">
+                                    <span class="delay-field-label">Fixo / Mínimo</span>
+                                    <div class="delay-input-wrapper">
+                                        <input type="number" id="delayMin" placeholder="10" min="1">
+                                        <span class="delay-unit">seg</span>
+                                    </div>
+                                </div>
+                                <div class="delay-separator">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                                <div class="delay-field">
+                                    <span class="delay-field-label">Máximo <span class="delay-optional">(opcional)</span></span>
+                                    <div class="delay-input-wrapper">
+                                        <input type="number" id="delayMax" placeholder="—" min="1">
+                                        <span class="delay-unit">seg</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="delay-preview" id="delayPreview">
+                                <i class="fas fa-info-circle"></i>
+                                <span id="delayPreviewText">Delay fixo</span>
                             </div>
                         </div>
-                        <button class="btn btn-primary btn-block" id="btnSaveConfig">
-                            <i class="fas fa-save"></i> Salvar Configurações
-                        </button>
                     </div>
                 </div>
             </div>
@@ -150,7 +200,7 @@
             <section class="card">
                 <div class="card-header">
                     <i class="fas fa-ban"></i>
-                    <h2>Lista Negra</h2>
+                    <h2>Lista Negra de Palavras</h2>
                     <button class="btn btn-primary" id="btnNewTerm">
                         <i class="fas fa-plus"></i> Adicionar Termo
                     </button>
@@ -160,18 +210,33 @@
                 </div>
             </section>
 
-            <!-- Seção de Histórico -->
+            <!-- Seção de Lista Negra de Grupos -->
             <section class="card">
                 <div class="card-header">
-                    <i class="fas fa-history"></i>
-                    <h2>Histórico de Respostas</h2>
-                    <button class="btn btn-danger" id="btnClearHistory">
+                    <i class="fas fa-users-slash"></i>
+                    <h2>Lista Negra de Grupos</h2>
+                    <button class="btn btn-primary" id="btnNewGroupTerm">
+                        <i class="fas fa-plus"></i> Adicionar Grupo
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p class="text-info"><i class="fas fa-info-circle"></i> O bot não responderá em grupos cujo nome contenha algum destes termos.</p>
+                    <div id="groupBlacklistContainer" class="lista-negra-container"></div>
+                </div>
+            </section>
+
+            <!-- Seção de Histórico de Mensagens -->
+            <section class="card">
+                <div class="card-header">
+                    <i class="fas fa-envelope-open-text"></i>
+                    <h2>Histórico de Mensagens</h2>
+                    <button class="btn btn-danger" id="btnClearMessages">
                         <i class="fas fa-trash"></i> Limpar
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="historyContainer" class="historico-container">
-                        <p class="text-muted">Nenhuma resposta enviada ainda</p>
+                    <div id="messagesContainer" class="historico-container mensagens-container">
+                        <p class="text-muted">Nenhuma mensagem recebida ainda</p>
                     </div>
                 </div>
             </section>
@@ -218,6 +283,45 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="btnCancelBlacklist">Cancelar</button>
                 <button class="btn btn-primary" id="btnSaveBlacklist">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar Grupo à Lista Negra -->
+    <div class="modal" id="groupBlacklistModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Adicionar Grupo à Lista Negra</h3>
+                <button class="modal-close" id="btnCloseGroupBlacklistModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nome ou parte do nome do grupo:</label>
+                    <input type="text" id="inputGroupBlacklist" placeholder="Ex: promoções, vendas">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btnCancelGroupBlacklist">Cancelar</button>
+                <button class="btn btn-primary" id="btnSaveGroupBlacklist">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação Genérico -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content confirm-modal-content">
+            <div class="confirm-modal-icon" id="confirmModalIcon">
+                <i class="fas fa-question-circle"></i>
+            </div>
+            <h3 class="confirm-modal-title" id="confirmModalTitle">Confirmação</h3>
+            <p class="confirm-modal-message" id="confirmModalMessage">Tem certeza que deseja continuar?</p>
+            <div class="confirm-modal-actions">
+                <button class="btn btn-secondary" id="btnConfirmNo">
+                    <i class="fas fa-times"></i> Não
+                </button>
+                <button class="btn btn-primary" id="btnConfirmYes">
+                    <i class="fas fa-check"></i> Sim
+                </button>
             </div>
         </div>
     </div>

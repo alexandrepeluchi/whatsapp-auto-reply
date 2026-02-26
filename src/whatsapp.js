@@ -55,6 +55,7 @@ function initializeBot(state, io) {
         console.log(`   - Responder próprias mensagens: ${config.settings.replyOwnMessages ? 'SIM' : 'NÃO'}`);
         console.log(`   - Total de gatilhos: ${config.autoReplies.length}\n`);
         state.botStatus = 'conectado';
+        state.botStartedAt = Date.now();
         state.currentQrCode = null;
         io.emit('status', state.botStatus);
         io.emit('qrcode', null);
@@ -94,11 +95,44 @@ function initializeBot(state, io) {
             console.log(`   fromMe: ${message.fromMe}`);
             console.log(`   isGroup: ${isGroup}`);
             console.log(`   replyOwnMessages: ${config.settings.replyOwnMessages}`);
-
+            // Ignora mensagens anteriores ao início do bot (evita processar fila de mensagens antigas)
+            const messageTimestamp = message.timestamp * 1000;
+            if (state.botStartedAt && messageTimestamp < state.botStartedAt) {
+                console.log(`   ⏭️  Ignorando: mensagem anterior ao início do bot (${new Date(messageTimestamp).toLocaleString('pt-BR')})`);
+                return;
+            }
             // Ignora mensagens que o bot acabou de enviar (evita loops)
             if (state.recentlySentMessages.has(message.id._serialized)) {
                 console.log('   ⏭️  Ignorando: mensagem enviada pelo próprio bot');
                 return;
+            }
+
+            // Registra a mensagem no histórico de mensagens (todas as mensagens)
+            const contactName = chat.name || message.from;
+            const msgRecord = {
+                timestamp: new Date().toISOString(),
+                from: message.from,
+                contact: contactName,
+                body: message.body,
+                fromMe: message.fromMe,
+                type: isGroup ? 'grupo' : 'privado'
+            };
+            state.allMessages.unshift(msgRecord);
+            if (state.allMessages.length > 200) state.allMessages.pop();
+            io.emit('nova-mensagem', msgRecord);
+
+            // Anti-loop: se a mensagem é própria, verifica se o conteúdo bate com alguma resposta configurada
+            if (message.fromMe && config.settings.replyOwnMessages) {
+                const msgBody = message.body;
+                const isAutoReply = config.autoReplies.some(item => {
+                    const responses = Array.isArray(item.response) ? item.response : [item.response];
+                    return responses.some(r => r === msgBody);
+                });
+
+                if (isAutoReply) {
+                    console.log('   ⏭️  Ignorando: mensagem própria igual a uma resposta configurada (anti-loop)');
+                    return;
+                }
             }
 
             // Verifica se deve ignorar mensagens próprias
@@ -121,7 +155,20 @@ function initializeBot(state, io) {
                 console.log('   ✅ Mensagem própria COM config ativa - processando...');
             }
 
-            // Verifica blacklist
+            // Verifica blacklist de grupos
+            if (isGroup && config.groupBlacklist && config.groupBlacklist.length > 0) {
+                const groupName = (chat.name || '').toLowerCase();
+                const isGroupBlacklisted = config.groupBlacklist.some(term =>
+                    groupName.includes(term.toLowerCase())
+                );
+
+                if (isGroupBlacklisted) {
+                    console.log(`   ❌ Ignorando: grupo "${chat.name}" está na lista negra de grupos`);
+                    return;
+                }
+            }
+
+            // Verifica blacklist de palavras
             const messageText = message.body.toLowerCase();
             const isBlacklisted = config.blacklist.some(term =>
                 messageText.includes(term.toLowerCase())
@@ -151,10 +198,14 @@ function initializeBot(state, io) {
 
                 if (triggerFound) {
                     console.log(`   ✅ Gatilho encontrado! Preparando resposta...`);
-                    // Delay aleatório
+                    // Delay: fixo se max não definido, aleatório se ambos definidos
                     const delayMin = config.settings.delayRange.min * 1000;
-                    const delayMax = config.settings.delayRange.max * 1000;
-                    const delay = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+                    const delayMax = config.settings.delayRange.max ? config.settings.delayRange.max * 1000 : null;
+                    const delay = delayMax
+                        ? Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin
+                        : delayMin;
+
+                    console.log(`   ⏳ Aguardando ${(delay / 1000).toFixed(1)}s para responder ${contactName}...`);
 
                     setTimeout(async () => {
                         // Seleciona resposta aleatória se houver múltiplas
@@ -162,6 +213,8 @@ function initializeBot(state, io) {
                         const chosenResponse = responses[Math.floor(Math.random() * responses.length)];
 
                         const sentMessage = await message.reply(chosenResponse);
+
+                        console.log(`   ✅ Respondido: ${contactName}`);
 
                         // Adiciona ID da mensagem enviada ao Set (evita loops)
                         if (sentMessage && sentMessage.id) {
@@ -176,7 +229,7 @@ function initializeBot(state, io) {
                         const record = {
                             timestamp: new Date().toISOString(),
                             from: message.from,
-                            contact: chat.name || message.from,
+                            contact: contactName,
                             receivedMessage: message.body,
                             sentReply: chosenResponse,
                             type: isGroup ? 'grupo' : 'privado'
@@ -186,8 +239,6 @@ function initializeBot(state, io) {
                         if (state.messageHistory.length > 100) state.messageHistory.pop();
 
                         io.emit('nova-resposta', record);
-
-                        console.log(`✅ Respondido: ${chat.name || message.from}`);
                     }, delay);
 
                     break;
@@ -200,18 +251,40 @@ function initializeBot(state, io) {
         }
     });
 
-    // Inicializa o cliente
-    state.client.initialize();
+    // Inicializa o cliente com tratamento de erro
+    state.client.initialize().catch(async (err) => {
+        console.error('❌ Erro ao inicializar o bot:', err.message);
+        console.log('🔄 Tentando reiniciar em 5 segundos...');
+        
+        // Limpa o cliente com erro
+        try {
+            if (state.client) {
+                await state.client.destroy().catch(() => {});
+            }
+        } catch (e) { /* ignora */ }
+        
+        state.client = null;
+        state.botStatus = 'desconectado';
+        io.emit('status', state.botStatus);
+        
+        // Tenta reiniciar automaticamente após 5 segundos
+        setTimeout(() => {
+            console.log('🔄 Reiniciando bot automaticamente...');
+            initializeBot(state, io);
+        }, 5000);
+    });
 }
 
 async function stopBot(state, io) {
     if (state.client) {
         console.log('🛑 Parando o bot...');
+        const stoppedAt = new Date().toLocaleString('pt-BR');
         await state.client.destroy();
         state.client = null;
         state.botStatus = 'desconectado';
+        state.botStartedAt = null;
         io.emit('status', state.botStatus);
-        console.log('✅ Bot parado com sucesso!');
+        console.log(`\u2705 Bot parado com sucesso! (${stoppedAt})`);
         return true;
     }
     return false;

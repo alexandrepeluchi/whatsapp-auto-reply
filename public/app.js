@@ -4,6 +4,80 @@ let socket;
 let currentConfig = null;
 let editingIndex = -1;
 
+// ==================== MODAL DE CONFIRMAÇÃO GENÉRICO ====================
+const ConfirmModal = {
+    _resolve: null,
+
+    /**
+     * Exibe o modal de confirmação genérico.
+     * @param {Object} options
+     * @param {string} options.title - Título do modal
+     * @param {string} options.message - Mensagem descritiva
+     * @param {string} [options.confirmText='Sim'] - Texto do botão de confirmar
+     * @param {string} [options.cancelText='Não'] - Texto do botão de cancelar
+     * @param {string} [options.type='warning'] - Tipo visual: 'warning' | 'danger' | 'success' | 'info'
+     * @param {string} [options.confirmClass='btn-primary'] - Classe CSS do botão de confirmar
+     * @returns {Promise<boolean>} Resolve true se confirmou, false se cancelou
+     */
+    show({
+        title = 'Confirmação',
+        message = 'Tem certeza que deseja continuar?',
+        confirmText = 'Sim',
+        cancelText = 'Não',
+        type = 'warning',
+        confirmClass = 'btn-primary'
+    } = {}) {
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmModalTitle');
+        const messageEl = document.getElementById('confirmModalMessage');
+        const iconEl = document.getElementById('confirmModalIcon');
+        const btnYes = document.getElementById('btnConfirmYes');
+        const btnNo = document.getElementById('btnConfirmNo');
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+
+        // Ícone e cor conforme o tipo
+        const iconMap = {
+            warning: 'fas fa-exclamation-triangle',
+            danger: 'fas fa-exclamation-circle',
+            success: 'fas fa-check-circle',
+            info: 'fas fa-info-circle'
+        };
+        iconEl.innerHTML = `<i class="${iconMap[type] || iconMap.warning}"></i>`;
+        iconEl.className = 'confirm-modal-icon ' + type;
+
+        // Texto e classe dos botões
+        btnYes.innerHTML = `<i class="fas fa-check"></i> ${confirmText}`;
+        btnYes.className = `btn ${confirmClass}`;
+        btnNo.innerHTML = `<i class="fas fa-times"></i> ${cancelText}`;
+
+        modal.classList.add('active');
+
+        return new Promise((resolve) => {
+            this._resolve = resolve;
+        });
+    },
+
+    _close(result) {
+        const modal = document.getElementById('confirmModal');
+        modal.classList.remove('active');
+        if (this._resolve) {
+            this._resolve(result);
+            this._resolve = null;
+        }
+    },
+
+    init() {
+        const modal = document.getElementById('confirmModal');
+        document.getElementById('btnConfirmYes').addEventListener('click', () => this._close(true));
+        document.getElementById('btnConfirmNo').addEventListener('click', () => this._close(false));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) this._close(false);
+        });
+    }
+};
+
 // ==================== ELEMENTOS DO DOM ====================
 const elements = {
     // Status
@@ -20,6 +94,7 @@ const elements = {
     
     // Stats
     totalReplies: document.getElementById('totalReplies'),
+    totalSentReplies: document.getElementById('totalSentReplies'),
     totalBlacklist: document.getElementById('totalBlacklist'),
     
     // Configurações
@@ -29,7 +104,8 @@ const elements = {
     wholeWord: document.getElementById('wholeWord'),
     delayMin: document.getElementById('delayMin'),
     delayMax: document.getElementById('delayMax'),
-    btnSaveConfig: document.getElementById('btnSaveConfig'),
+    delayPreview: document.getElementById('delayPreview'),
+    delayPreviewText: document.getElementById('delayPreviewText'),
     
     // Respostas
     repliesList: document.getElementById('repliesList'),
@@ -39,9 +115,25 @@ const elements = {
     blacklistContainer: document.getElementById('blacklistContainer'),
     btnNewTerm: document.getElementById('btnNewTerm'),
     
+    // Lista Negra de Grupos
+    groupBlacklistContainer: document.getElementById('groupBlacklistContainer'),
+    btnNewGroupTerm: document.getElementById('btnNewGroupTerm'),
+    totalGroupBlacklist: document.getElementById('totalGroupBlacklist'),
+    
+    // Modal Lista Negra de Grupos
+    groupBlacklistModal: document.getElementById('groupBlacklistModal'),
+    inputGroupBlacklist: document.getElementById('inputGroupBlacklist'),
+    btnCloseGroupBlacklistModal: document.getElementById('btnCloseGroupBlacklistModal'),
+    btnCancelGroupBlacklist: document.getElementById('btnCancelGroupBlacklist'),
+    btnSaveGroupBlacklist: document.getElementById('btnSaveGroupBlacklist'),
+    
     // Histórico
     historyContainer: document.getElementById('historyContainer'),
     btnClearHistory: document.getElementById('btnClearHistory'),
+    
+    // Histórico de Mensagens
+    messagesContainer: document.getElementById('messagesContainer'),
+    btnClearMessages: document.getElementById('btnClearMessages'),
     
     // Modal Resposta
     replyModal: document.getElementById('replyModal'),
@@ -95,6 +187,11 @@ function initWebSocket() {
     
     socket.on('nova-resposta', (record) => {
         addHistoryItem(record);
+        updateSentRepliesCount();
+    });
+    
+    socket.on('nova-mensagem', (record) => {
+        addMessageItem(record);
     });
     
     socket.on('disconnect', () => {
@@ -164,17 +261,43 @@ async function loadConfig() {
         elements.caseSensitive.checked = config.settings.caseSensitive;
         elements.wholeWord.checked = config.settings.wholeWord;
         elements.delayMin.value = config.settings.delayRange.min;
-        elements.delayMax.value = config.settings.delayRange.max;
+        elements.delayMax.value = config.settings.delayRange.max || '';
+        updateDelayPreview();
         
         // Atualiza stats
         elements.totalReplies.textContent = config.autoReplies.length;
         elements.totalBlacklist.textContent = config.blacklist.length;
+        elements.totalGroupBlacklist.textContent = (config.groupBlacklist || []).length;
         
         // Renderiza listas
         renderReplies();
         renderBlacklist();
+        renderGroupBlacklist();
     } catch (error) {
         console.error('Erro ao carregar configurações:', error);
+    }
+}
+
+function updateDelayPreview() {
+    const min = parseInt(elements.delayMin.value);
+    const max = parseInt(elements.delayMax.value);
+    const preview = elements.delayPreview;
+    const text = elements.delayPreviewText;
+
+    if (!min && !max) {
+        text.textContent = 'Defina o tempo de delay';
+        preview.className = 'delay-preview';
+    } else if (min && !max) {
+        text.textContent = `Delay fixo de ${min} segundo${min !== 1 ? 's' : ''}`;
+        preview.className = 'delay-preview';
+    } else if (min && max) {
+        if (max <= min) {
+            text.textContent = 'O máximo deve ser maior que o mínimo';
+            preview.className = 'delay-preview';
+        } else {
+            text.textContent = `Delay aleatório entre ${min}s e ${max}s`;
+            preview.className = 'delay-preview random';
+        }
     }
 }
 
@@ -184,20 +307,22 @@ async function saveConfig() {
         currentConfig.settings.replyInPrivate = elements.replyPrivate.checked;
         currentConfig.settings.caseSensitive = elements.caseSensitive.checked;
         currentConfig.settings.wholeWord = elements.wholeWord.checked;
-        currentConfig.settings.delayRange.min = parseInt(elements.delayMin.value);
-        currentConfig.settings.delayRange.max = parseInt(elements.delayMax.value);
+        currentConfig.settings.delayRange.min = parseInt(elements.delayMin.value) || 1;
+        currentConfig.settings.delayRange.max = elements.delayMax.value ? parseInt(elements.delayMax.value) : null;
         
-        const result = await makeRequest('/api/config', {
+        await makeRequest('/api/config', {
             method: 'POST',
             body: JSON.stringify(currentConfig)
         });
-        
-        if (result.success) {
-            showToast('Configurações salvas com sucesso!', 'success');
-        }
     } catch (error) {
         console.error('Erro ao salvar configurações:', error);
     }
+}
+
+let _saveConfigTimeout = null;
+function autoSaveConfig() {
+    clearTimeout(_saveConfigTimeout);
+    _saveConfigTimeout = setTimeout(() => saveConfig(), 400);
 }
 
 async function loadHistory() {
@@ -210,9 +335,30 @@ async function loadHistory() {
         } else {
             history.forEach(item => addHistoryItem(item));
         }
+        updateSentRepliesCount();
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
     }
+}
+
+async function loadMessages() {
+    try {
+        const messages = await makeRequest('/api/mensagens');
+        elements.messagesContainer.innerHTML = '';
+        
+        if (messages.length === 0) {
+            elements.messagesContainer.innerHTML = '<p class="text-muted">Nenhuma mensagem recebida ainda</p>';
+        } else {
+            messages.forEach(item => addMessageItem(item));
+        }
+    } catch (error) {
+        console.error('Erro ao carregar mensagens:', error);
+    }
+}
+
+function updateSentRepliesCount() {
+    const items = elements.historyContainer.querySelectorAll('.historico-item');
+    elements.totalSentReplies.textContent = items.length;
 }
 
 // ==================== FUNÇÕES DE RENDERIZAÇÃO ====================
@@ -276,6 +422,29 @@ function renderBlacklist() {
     });
 }
 
+function renderGroupBlacklist() {
+    elements.groupBlacklistContainer.innerHTML = '';
+    
+    const groupBlacklist = currentConfig.groupBlacklist || [];
+    
+    if (groupBlacklist.length === 0) {
+        elements.groupBlacklistContainer.innerHTML = '<p class="text-muted">Nenhum grupo na lista negra</p>';
+        return;
+    }
+    
+    groupBlacklist.forEach((term, index) => {
+        const span = document.createElement('span');
+        span.className = 'lista-negra-item group-blacklist-item';
+        span.innerHTML = `
+            ${term}
+            <button onclick="removeGroupBlacklist(${index})">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        elements.groupBlacklistContainer.appendChild(span);
+    });
+}
+
 function addHistoryItem(item) {
     const firstItem = elements.historyContainer.querySelector('.text-muted');
     if (firstItem) {
@@ -305,6 +474,60 @@ function addHistoryItem(item) {
     `;
     
     elements.historyContainer.insertBefore(div, elements.historyContainer.firstChild);
+}
+
+function addMessageItem(item) {
+    const firstItem = elements.messagesContainer.querySelector('.text-muted');
+    if (firstItem) {
+        elements.messagesContainer.innerHTML = '';
+    }
+    
+    const div = document.createElement('div');
+    div.className = `mensagem-item ${item.fromMe ? 'sent' : 'received'}`;
+    
+    const date = new Date(item.timestamp);
+    const formattedDate = date.toLocaleString('pt-BR');
+    
+    const directionIcon = item.fromMe ? 'fa-arrow-up' : 'fa-arrow-down';
+    const directionLabel = item.fromMe ? 'Enviada' : 'Recebida';
+    
+    div.innerHTML = `
+        <div class="mensagem-header">
+            <div>
+                <i class="fas ${directionIcon} mensagem-direction ${item.fromMe ? 'sent' : 'received'}"></i>
+                <span class="mensagem-contato">${item.contact}</span>
+                <span class="historico-tipo ${item.type}">${item.type}</span>
+            </div>
+            <span class="historico-timestamp">${formattedDate}</span>
+        </div>
+        <div class="mensagem-body">${item.body}</div>
+    `;
+    
+    elements.messagesContainer.insertBefore(div, elements.messagesContainer.firstChild);
+}
+
+async function clearMessages() {
+    const confirmed = await ConfirmModal.show({
+        title: 'Limpar Mensagens',
+        message: 'Tem certeza que deseja limpar todo o histórico de mensagens?',
+        confirmText: 'Limpar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!confirmed) return;
+    
+    try {
+        const result = await makeRequest('/api/mensagens', {
+            method: 'DELETE'
+        });
+        
+        if (result.success) {
+            elements.messagesContainer.innerHTML = '<p class="text-muted">Nenhuma mensagem recebida ainda</p>';
+            showToast('Histórico de mensagens limpo com sucesso!', 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao limpar mensagens:', error);
+    }
 }
 
 // ==================== FUNÇÕES DE MODAL ====================
@@ -343,13 +566,29 @@ function closeBlacklistModal() {
     elements.blacklistModal.classList.remove('active');
 }
 
+function openGroupBlacklistModal() {
+    elements.inputGroupBlacklist.value = '';
+    elements.groupBlacklistModal.classList.add('active');
+}
+
+function closeGroupBlacklistModal() {
+    elements.groupBlacklistModal.classList.remove('active');
+}
+
 // ==================== FUNÇÕES DE RESPOSTAS ====================
 window.editReply = function(index) {
     openReplyModal(index);
 };
 
 window.deleteReply = async function(index) {
-    if (!confirm('Tem certeza que deseja deletar esta resposta?')) return;
+    const confirmed = await ConfirmModal.show({
+        title: 'Deletar Resposta',
+        message: 'Tem certeza que deseja deletar esta resposta automática?',
+        confirmText: 'Deletar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!confirmed) return;
     
     try {
         const result = await makeRequest(`/api/respostas/${index}`, {
@@ -456,8 +695,64 @@ async function addBlacklist() {
     }
 }
 
+// ==================== FUNÇÕES DE LISTA NEGRA DE GRUPOS ====================
+window.removeGroupBlacklist = async function(index) {
+    try {
+        if (!currentConfig.groupBlacklist) currentConfig.groupBlacklist = [];
+        currentConfig.groupBlacklist.splice(index, 1);
+        
+        const result = await makeRequest('/api/config', {
+            method: 'POST',
+            body: JSON.stringify(currentConfig)
+        });
+        
+        if (result.success) {
+            await loadConfig();
+            showToast('Grupo removido da lista negra!', 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao remover grupo:', error);
+    }
+};
+
+async function addGroupBlacklist() {
+    const term = elements.inputGroupBlacklist.value.trim();
+    
+    if (!term) {
+        showToast('Digite o nome ou parte do nome do grupo!', 'warning');
+        return;
+    }
+    
+    try {
+        if (!currentConfig.groupBlacklist) currentConfig.groupBlacklist = [];
+        currentConfig.groupBlacklist.push(term);
+        
+        const result = await makeRequest('/api/config', {
+            method: 'POST',
+            body: JSON.stringify(currentConfig)
+        });
+        
+        if (result.success) {
+            await loadConfig();
+            closeGroupBlacklistModal();
+            showToast('Grupo adicionado à lista negra!', 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao adicionar grupo:', error);
+    }
+}
+
 // ==================== FUNÇÕES DE CONTROLE DO BOT ====================
 async function startBot() {
+    const confirmed = await ConfirmModal.show({
+        title: 'Iniciar Bot',
+        message: 'Deseja iniciar o bot do WhatsApp?',
+        confirmText: 'Iniciar',
+        type: 'success',
+        confirmClass: 'btn-success'
+    });
+    if (!confirmed) return;
+
     try {
         const result = await makeRequest('/api/bot/iniciar', {
             method: 'POST'
@@ -474,7 +769,14 @@ async function startBot() {
 }
 
 async function stopBot() {
-    if (!confirm('Tem certeza que deseja parar o bot?')) return;
+    const confirmed = await ConfirmModal.show({
+        title: 'Parar Bot',
+        message: 'Tem certeza que deseja parar o bot? Ele deixará de responder mensagens.',
+        confirmText: 'Parar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!confirmed) return;
     
     try {
         const result = await makeRequest('/api/bot/parar', {
@@ -492,7 +794,14 @@ async function stopBot() {
 }
 
 async function clearHistory() {
-    if (!confirm('Tem certeza que deseja limpar o histórico?')) return;
+    const confirmed = await ConfirmModal.show({
+        title: 'Limpar Histórico',
+        message: 'Tem certeza que deseja limpar todo o histórico de respostas?',
+        confirmText: 'Limpar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!confirmed) return;
     
     try {
         const result = await makeRequest('/api/historico', {
@@ -501,10 +810,48 @@ async function clearHistory() {
         
         if (result.success) {
             elements.historyContainer.innerHTML = '<p class="text-muted">Nenhuma resposta enviada ainda</p>';
+            elements.totalSentReplies.textContent = '0';
             showToast('Histórico limpo com sucesso!', 'success');
         }
     } catch (error) {
         console.error('Erro ao limpar histórico:', error);
+    }
+}
+
+// ==================== FUNÇÕES DE RESET ====================
+async function resetConfig() {
+    // Primeira confirmação
+    const firstConfirm = await ConfirmModal.show({
+        title: 'Resetar Configurações',
+        message: 'Deseja resetar todas as configurações para os valores padrão?',
+        confirmText: 'Resetar',
+        type: 'warning',
+        confirmClass: 'btn-warning'
+    });
+    if (!firstConfirm) return;
+
+    // Segunda confirmação — aviso de irreversibilidade
+    const secondConfirm = await ConfirmModal.show({
+        title: 'Ação Irreversível',
+        message: 'Tem certeza absoluta? Após a confirmação será impossível desfazer os ajustes. Todas as configurações personalizadas serão perdidas permanentemente.',
+        confirmText: 'Tenho Certeza',
+        cancelText: 'Cancelar',
+        type: 'danger',
+        confirmClass: 'btn-danger'
+    });
+    if (!secondConfirm) return;
+
+    try {
+        const result = await makeRequest('/api/config/reset', {
+            method: 'POST'
+        });
+
+        if (result.success) {
+            await loadConfig();
+            showToast('Configurações restauradas para os padrões!', 'success');
+        }
+    } catch (error) {
+        console.error('Erro ao resetar configurações:', error);
     }
 }
 
@@ -521,10 +868,22 @@ function showToast(message, type = 'success') {
 // ==================== EVENT LISTENERS ====================
 elements.btnStart.addEventListener('click', startBot);
 elements.btnStop.addEventListener('click', stopBot);
-elements.btnSaveConfig.addEventListener('click', saveConfig);
+elements.btnResetConfig = document.getElementById('btnResetConfig');
+elements.btnResetConfig.addEventListener('click', resetConfig);
+
+// Auto-save nas configurações
+elements.replyGroups.addEventListener('change', autoSaveConfig);
+elements.replyPrivate.addEventListener('change', autoSaveConfig);
+elements.caseSensitive.addEventListener('change', autoSaveConfig);
+elements.wholeWord.addEventListener('change', autoSaveConfig);
+elements.delayMin.addEventListener('input', () => { updateDelayPreview(); autoSaveConfig(); });
+elements.delayMax.addEventListener('input', () => { updateDelayPreview(); autoSaveConfig(); });
+
 elements.btnNewReply.addEventListener('click', () => openReplyModal());
 elements.btnNewTerm.addEventListener('click', openBlacklistModal);
+elements.btnNewGroupTerm.addEventListener('click', openGroupBlacklistModal);
 elements.btnClearHistory.addEventListener('click', clearHistory);
+elements.btnClearMessages.addEventListener('click', clearMessages);
 
 // Modal Resposta
 elements.btnCloseModal.addEventListener('click', closeReplyModal);
@@ -536,6 +895,11 @@ elements.btnCloseBlacklistModal.addEventListener('click', closeBlacklistModal);
 elements.btnCancelBlacklist.addEventListener('click', closeBlacklistModal);
 elements.btnSaveBlacklist.addEventListener('click', addBlacklist);
 
+// Modal Lista Negra de Grupos
+elements.btnCloseGroupBlacklistModal.addEventListener('click', closeGroupBlacklistModal);
+elements.btnCancelGroupBlacklist.addEventListener('click', closeGroupBlacklistModal);
+elements.btnSaveGroupBlacklist.addEventListener('click', addGroupBlacklist);
+
 // Fechar modal ao clicar fora
 elements.replyModal.addEventListener('click', (e) => {
     if (e.target === elements.replyModal) closeReplyModal();
@@ -545,9 +909,15 @@ elements.blacklistModal.addEventListener('click', (e) => {
     if (e.target === elements.blacklistModal) closeBlacklistModal();
 });
 
+elements.groupBlacklistModal.addEventListener('click', (e) => {
+    if (e.target === elements.groupBlacklistModal) closeGroupBlacklistModal();
+});
+
 // ==================== INICIALIZAÇÃO ====================
 document.addEventListener('DOMContentLoaded', () => {
+    ConfirmModal.init();
     initWebSocket();
     loadConfig();
     loadHistory();
+    loadMessages();
 });
