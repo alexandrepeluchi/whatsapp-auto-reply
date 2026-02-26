@@ -27,6 +27,7 @@ Bot automatizado para WhatsApp com respostas naturais e humanizadas. Suporta res
     - [Estrutura usada no projeto](#estrutura-usada-no-projeto)
   - [⚙️ Configurações Avançadas](#️-configurações-avançadas)
     - [Exemplo único de configuração](#exemplo-único-de-configuração)
+    - [Lista Negra de Grupos](#lista-negra-de-grupos)
   - [📱 Lendo o QR Code](#-lendo-o-qr-code)
   - [🛑 Parando o Bot](#-parando-o-bot)
   - [🤝 Contribuindo](#-contribuindo)
@@ -45,6 +46,7 @@ Agora você pode gerenciar o bot através de uma interface web moderna e intuiti
 - **QR Code integrado**: escaneie direto no navegador
 - **Gerenciamento de respostas**: adicione, edite e remova respostas automáticas
 - **Lista negra interativa**: gerencie termos bloqueados
+- **Lista negra de grupos**: bloqueie grupos por nome (parcial)
 - **Histórico de mensagens**: acompanhe respostas enviadas
 - **Configurações visuais**: ajuste delays e comportamento sem editar arquivo manualmente
 - **Controles do bot**: inicie e pare com um clique
@@ -74,7 +76,7 @@ Funciona em:
 - 🎲 Respostas variadas para parecer mais natural
 - ⏱️ Delay aleatório configurável
 - 🎯 Gatilhos por palavras ou frases
-- 🚫 Blacklist anti-spam
+- 🚫 Blacklist anti-spam (palavras e grupos)
 - 📊 Logs e histórico de respostas
 - 🛡️ Tratamento de erros e reconexão
 
@@ -200,6 +202,7 @@ module.exports = {
     }
   ],
   blacklist: ['oferta imperdível', 'clique aqui', 'ganhe dinheiro'],
+  groupBlacklist: ['promoções', 'vendas', 'spam'],
   settings: {
     replyInGroups: true,
     replyInPrivate: false,
@@ -213,6 +216,14 @@ module.exports = {
   }
 };
 ```
+
+### Lista Negra de Grupos
+
+Você pode bloquear grupos pelo nome (ou parte do nome). O bot não responderá em grupos cujo nome contenha algum dos termos configurados.
+
+- A comparação é parcial (contains) e não diferencia maiúsculas/minúsculas
+- Exemplo: o termo `"vendas"` bloqueia grupos como "Grupo de Vendas", "VENDAS 2026", "promovendas"
+- Gerencie pelo dashboard ou diretamente no campo `groupBlacklist` do `config.js`
 
 ## 📱 Lendo o QR Code
 
