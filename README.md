@@ -220,8 +220,9 @@ O sistema usa dois arquivos:
 
 ## 📱 Conectando ao WhatsApp
 
-1. Inicie o servidor com `npm start`
-2. Acesse `http://localhost:3000`
+1. Instale as dependências com `npm install`
+2. Inicie o servidor com `npm start`
+3. Acesse `http://localhost:3000`
 3. Clique em **Iniciar Bot**
 4. No celular: WhatsApp → **Aparelhos conectados** → **Conectar um aparelho**
 5. Escaneie o QR Code exibido no dashboard
