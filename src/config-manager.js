@@ -1,3 +1,10 @@
+// ==================== GERENCIADOR DE CONFIGURAÇÕES ====================
+// Responsável por carregar, salvar e resetar as configurações do bot.
+// Utiliza dois arquivos:
+//   - config.js          → valores padrão de fábrica (nunca alterado em runtime)
+//   - config.local.json  → customizações do usuário (criado automaticamente pelo dashboard)
+// Se config.local.json existir, ele tem prioridade total sobre config.js.
+
 const fs = require('fs');
 const path = require('path');
 
@@ -5,7 +12,9 @@ const DEFAULTS_PATH = path.join(__dirname, '..', 'config.js');
 const LOCAL_PATH = path.join(__dirname, '..', 'config.local.json');
 
 /**
- * Carrega a configuração padrão de config.js (defaults imutáveis)
+ * Carrega as configurações padrão de config.js.
+ * Limpa o cache do require para sempre ler a versão mais recente do arquivo.
+ * @returns {Object} Configurações padrão de fábrica
  */
 function loadDefaults() {
     delete require.cache[require.resolve(DEFAULTS_PATH)];
@@ -13,7 +22,9 @@ function loadDefaults() {
 }
 
 /**
- * Carrega as customizações do usuário salvas em config.local.json
+ * Carrega as customizações do usuário salvas em config.local.json.
+ * Retorna null se o arquivo não existir ou houver erro de leitura/parse.
+ * @returns {Object|null} Configurações do usuário ou null
  */
 function loadLocal() {
     if (fs.existsSync(LOCAL_PATH)) {
@@ -29,22 +40,20 @@ function loadLocal() {
 }
 
 /**
- * Carrega a configuração mesclando defaults com customizações locais.
- * Se config.local.json existir, ele tem prioridade total (substituição completa).
+ * Carrega a configuração ativa do bot.
+ * Prioriza config.local.json (customizações do usuário) sobre config.js (defaults).
+ * @returns {Object} Configurações ativas
  */
 function load() {
-    const defaults = loadDefaults();
     const local = loadLocal();
-
-    if (local) {
-        return local;
-    }
-
-    return defaults;
+    return local || loadDefaults();
 }
 
 /**
- * Salva a configuração no arquivo config.local.json (nunca altera config.js)
+ * Salva as configurações no arquivo config.local.json.
+ * Nunca modifica config.js — apenas persiste as customizações do usuário.
+ * @param {Object} newConfig - Objeto completo de configurações para salvar
+ * @returns {Object} Configurações salvas (releitura do arquivo)
  */
 function save(newConfig) {
     fs.writeFileSync(LOCAL_PATH, JSON.stringify(newConfig, null, 2), 'utf8');
@@ -52,7 +61,9 @@ function save(newConfig) {
 }
 
 /**
- * Restaura para os defaults, removendo o arquivo local
+ * Restaura as configurações para os valores padrão de fábrica.
+ * Remove config.local.json para que o sistema volte a usar config.js.
+ * @returns {Object} Configurações padrão restauradas
  */
 function resetToDefaults() {
     if (fs.existsSync(LOCAL_PATH)) {

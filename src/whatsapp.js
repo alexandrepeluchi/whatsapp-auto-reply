@@ -1,7 +1,19 @@
+// ==================== CLIENTE WHATSAPP ====================
+// Módulo responsável por toda a comunicação com o WhatsApp via whatsapp-web.js.
+// Gerencia o ciclo de vida do bot: inicialização, autenticação, processamento
+// de mensagens, envio de respostas automáticas e desconexão.
+
 const QRCode = require('qrcode');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const configManager = require('./config-manager');
 
+/**
+ * Inicializa o cliente do WhatsApp e registra todos os event listeners.
+ * Configura autenticação local, geração de QR Code, processamento de mensagens
+ * e reconexão automática em caso de falha.
+ * @param {Object} state - Estado global compartilhado da aplicação
+ * @param {import('socket.io').Server} io - Instância do Socket.IO para emitir eventos ao dashboard
+ */
 function initializeBot(state, io) {
     if (state.client) {
         console.log('⚠️  Bot já está inicializado');
@@ -10,6 +22,7 @@ function initializeBot(state, io) {
 
     console.log('🤖 Iniciando WhatsApp Bot...\n');
 
+    // Cria o cliente com autenticação local (sessão persistida em .wwebjs_auth)
     state.client = new Client({
         authStrategy: new LocalAuth({
             dataPath: '.wwebjs_auth'
@@ -30,7 +43,9 @@ function initializeBot(state, io) {
         }
     });
 
-    // Evento: QR Code gerado
+    // ==================== EVENTOS DE CONEXÃO ====================
+
+    // QR Code gerado — converte para base64 e envia ao dashboard
     state.client.on('qr', async (qrCode) => {
         console.log('📱 QR CODE GERADO!');
         state.botStatus = 'aguardando-qr';
@@ -44,16 +59,17 @@ function initializeBot(state, io) {
         }
     });
 
-    // Evento: Cliente pronto
+    // Cliente pronto para receber mensagens — loga configurações ativas
     state.client.on('ready', () => {
         const config = configManager.load();
         console.log('✅ Bot conectado com sucesso!');
-        console.log('🎯 Listener de mensagens registrado e ativo (capturando TODAS as mensagens)!');
+        console.log('🎯 Listener de mensagens ativo');
         console.log('📊 Configurações ativas:');
         console.log(`   - Responder em grupos: ${config.settings.replyInGroups ? 'SIM' : 'NÃO'}`);
         console.log(`   - Responder em privado: ${config.settings.replyInPrivate ? 'SIM' : 'NÃO'}`);
         console.log(`   - Responder próprias mensagens: ${config.settings.replyOwnMessages ? 'SIM' : 'NÃO'}`);
         console.log(`   - Total de gatilhos: ${config.autoReplies.length}\n`);
+
         state.botStatus = 'conectado';
         state.botStartedAt = Date.now();
         state.currentQrCode = null;
@@ -61,21 +77,21 @@ function initializeBot(state, io) {
         io.emit('qrcode', null);
     });
 
-    // Evento: Autenticação bem-sucedida
+    // Autenticação bem-sucedida (ocorre antes do 'ready')
     state.client.on('authenticated', () => {
         console.log('🔐 Autenticação realizada com sucesso!');
         state.botStatus = 'autenticado';
         io.emit('status', state.botStatus);
     });
 
-    // Evento: Falha na autenticação
+    // Falha na autenticação — sessão inválida ou expirada
     state.client.on('auth_failure', (message) => {
         console.error('❌ Falha na autenticação:', message);
         state.botStatus = 'erro-autenticacao';
         io.emit('status', state.botStatus);
     });
 
-    // Evento: Cliente desconectado
+    // Cliente desconectado — limpa o estado para permitir nova inicialização
     state.client.on('disconnected', (reason) => {
         console.log('🔌 Cliente desconectado:', reason);
         state.botStatus = 'desconectado';
@@ -83,31 +99,35 @@ function initializeBot(state, io) {
         io.emit('status', state.botStatus);
     });
 
-    // Evento: Mensagem recebida (message_create captura TODAS as mensagens, inclusive as suas)
+    // ==================== PROCESSAMENTO DE MENSAGENS ====================
+    // Usa 'message_create' para capturar TODAS as mensagens (recebidas e enviadas)
+
     state.client.on('message_create', async (message) => {
         try {
             const config = configManager.load();
             const chat = await message.getChat();
             const isGroup = chat.isGroup;
 
-            // DEBUG: Log de mensagem recebida
             console.log(`\n📨 Mensagem recebida: "${message.body}"`);
-            console.log(`   fromMe: ${message.fromMe}`);
-            console.log(`   isGroup: ${isGroup}`);
-            console.log(`   replyOwnMessages: ${config.settings.replyOwnMessages}`);
-            // Ignora mensagens anteriores ao início do bot (evita processar fila de mensagens antigas)
+            console.log(`   fromMe: ${message.fromMe} | isGroup: ${isGroup}`);
+
+            // --- FILTRO 1: Ignora mensagens anteriores ao início do bot ---
+            // Evita processar mensagens acumuladas na fila antes da conexão
             const messageTimestamp = message.timestamp * 1000;
             if (state.botStartedAt && messageTimestamp < state.botStartedAt) {
-                console.log(`   ⏭️  Ignorando: mensagem anterior ao início do bot (${new Date(messageTimestamp).toLocaleString('pt-BR')})`);
+                console.log(`   ⏭️  Ignorando: mensagem anterior ao início do bot`);
                 return;
             }
-            // Ignora mensagens que o bot acabou de enviar (evita loops)
+
+            // --- FILTRO 2: Ignora mensagens recém-enviadas pelo próprio bot ---
+            // Previne loops infinitos (bot respondendo à própria resposta)
             if (state.recentlySentMessages.has(message.id._serialized)) {
                 console.log('   ⏭️  Ignorando: mensagem enviada pelo próprio bot');
                 return;
             }
 
-            // Registra a mensagem no histórico de mensagens (todas as mensagens)
+            // --- REGISTRO NO HISTÓRICO DE MENSAGENS ---
+            // Salva todas as mensagens recebidas para exibição no dashboard
             const contactName = chat.name || message.from;
             const msgRecord = {
                 timestamp: new Date().toISOString(),
@@ -121,7 +141,8 @@ function initializeBot(state, io) {
             if (state.allMessages.length > 200) state.allMessages.pop();
             io.emit('nova-mensagem', msgRecord);
 
-            // Anti-loop: se a mensagem é própria, verifica se o conteúdo bate com alguma resposta configurada
+            // --- FILTRO 3: Anti-loop para mensagens próprias ---
+            // Se replyOwnMessages está ativo, verifica se a mensagem é idêntica a uma resposta configurada
             if (message.fromMe && config.settings.replyOwnMessages) {
                 const msgBody = message.body;
                 const isAutoReply = config.autoReplies.some(item => {
@@ -135,27 +156,25 @@ function initializeBot(state, io) {
                 }
             }
 
-            // Verifica se deve ignorar mensagens próprias
+            // --- FILTRO 4: Mensagens próprias sem permissão ---
             if (message.fromMe && !config.settings.replyOwnMessages) {
-                console.log('   ❌ Ignorando: mensagem própria e config desativada');
+                console.log('   ❌ Ignorando: mensagem própria (config desativada)');
                 return;
             }
 
-            // Se for mensagem própria E a config está ativa, pode prosseguir
-            // Senão, verifica as regras normais de grupo/privado
+            // --- FILTRO 5: Regras de grupo/privado ---
+            // Verifica se o bot deve responder neste tipo de chat
             if (!message.fromMe) {
                 const shouldReply = (isGroup && config.settings.replyInGroups) ||
                                      (!isGroup && config.settings.replyInPrivate);
-                console.log(`   shouldReply (outros): ${shouldReply}`);
                 if (!shouldReply) {
-                    console.log('   ❌ Ignorando: regras de grupo/privado');
+                    console.log('   ❌ Ignorando: tipo de chat não permitido');
                     return;
                 }
-            } else {
-                console.log('   ✅ Mensagem própria COM config ativa - processando...');
             }
 
-            // Verifica blacklist de grupos
+            // --- FILTRO 6: Lista negra de grupos ---
+            // Verifica se o nome do grupo contém algum termo bloqueado
             if (isGroup && config.groupBlacklist && config.groupBlacklist.length > 0) {
                 const groupName = (chat.name || '').toLowerCase();
                 const isGroupBlacklisted = config.groupBlacklist.some(term =>
@@ -163,12 +182,13 @@ function initializeBot(state, io) {
                 );
 
                 if (isGroupBlacklisted) {
-                    console.log(`   ❌ Ignorando: grupo "${chat.name}" está na lista negra de grupos`);
+                    console.log(`   ❌ Ignorando: grupo "${chat.name}" está na lista negra`);
                     return;
                 }
             }
 
-            // Verifica blacklist de palavras
+            // --- FILTRO 7: Lista negra de palavras ---
+            // Verifica se a mensagem contém algum termo bloqueado
             const messageText = message.body.toLowerCase();
             const isBlacklisted = config.blacklist.some(term =>
                 messageText.includes(term.toLowerCase())
@@ -179,15 +199,17 @@ function initializeBot(state, io) {
                 return;
             }
 
-            // Procura por gatilhos
+            // --- BUSCA DE GATILHOS E ENVIO DE RESPOSTA ---
+            // Percorre as regras de resposta automática procurando um gatilho correspondente
             console.log(`   🔍 Procurando gatilhos em ${config.autoReplies.length} regra(s)...`);
+
             for (const item of config.autoReplies) {
                 const triggerFound = item.triggers.some(trigger => {
-                    const comparisonText = config.settings.caseSensitive ?
-                        message.body : messageText;
-                    const triggerComparison = config.settings.caseSensitive ?
-                        trigger : trigger.toLowerCase();
+                    // Aplica case-sensitivity conforme configuração
+                    const comparisonText = config.settings.caseSensitive ? message.body : messageText;
+                    const triggerComparison = config.settings.caseSensitive ? trigger : trigger.toLowerCase();
 
+                    // wholeWord: usa regex com word boundary (\b) para exigir palavra completa
                     if (config.settings.wholeWord) {
                         const regex = new RegExp(`\\b${triggerComparison}\\b`);
                         return regex.test(comparisonText);
@@ -198,7 +220,8 @@ function initializeBot(state, io) {
 
                 if (triggerFound) {
                     console.log(`   ✅ Gatilho encontrado! Preparando resposta...`);
-                    // Delay: fixo se max não definido, aleatório se ambos definidos
+
+                    // Calcula o delay (fixo ou aleatório) para simular digitação humana
                     const delayMin = config.settings.delayRange.min * 1000;
                     const delayMax = config.settings.delayRange.max ? config.settings.delayRange.max * 1000 : null;
                     const delay = delayMax
@@ -207,25 +230,24 @@ function initializeBot(state, io) {
 
                     console.log(`   ⏳ Aguardando ${(delay / 1000).toFixed(1)}s para responder ${contactName}...`);
 
+                    // Envia a resposta após o delay calculado
                     setTimeout(async () => {
-                        // Seleciona resposta aleatória se houver múltiplas
+                        // Se houver múltiplas respostas, escolhe uma aleatoriamente
                         const responses = Array.isArray(item.response) ? item.response : [item.response];
                         const chosenResponse = responses[Math.floor(Math.random() * responses.length)];
 
                         const sentMessage = await message.reply(chosenResponse);
-
                         console.log(`   ✅ Respondido: ${contactName}`);
 
-                        // Adiciona ID da mensagem enviada ao Set (evita loops)
+                        // Registra o ID da mensagem enviada para evitar loops (expira em 10s)
                         if (sentMessage && sentMessage.id) {
                             state.recentlySentMessages.add(sentMessage.id._serialized);
-                            // Remove após 10 segundos
                             setTimeout(() => {
                                 state.recentlySentMessages.delete(sentMessage.id._serialized);
                             }, 10000);
                         }
 
-                        // Adiciona ao histórico
+                        // Registra no histórico de respostas e notifica o dashboard
                         const record = {
                             timestamp: new Date().toISOString(),
                             from: message.from,
@@ -237,10 +259,10 @@ function initializeBot(state, io) {
 
                         state.messageHistory.unshift(record);
                         if (state.messageHistory.length > 100) state.messageHistory.pop();
-
                         io.emit('nova-resposta', record);
                     }, delay);
 
+                    // Interrompe a busca após encontrar o primeiro gatilho correspondente
                     break;
                 }
             }
@@ -251,12 +273,14 @@ function initializeBot(state, io) {
         }
     });
 
-    // Inicializa o cliente com tratamento de erro
+    // ==================== INICIALIZAÇÃO COM AUTO-RECONEXÃO ====================
+    // Tenta inicializar o cliente. Em caso de falha, aguarda 5s e tenta novamente.
+
     state.client.initialize().catch(async (err) => {
         console.error('❌ Erro ao inicializar o bot:', err.message);
         console.log('🔄 Tentando reiniciar em 5 segundos...');
         
-        // Limpa o cliente com erro
+        // Limpa o cliente com erro antes de tentar novamente
         try {
             if (state.client) {
                 await state.client.destroy().catch(() => {});
@@ -267,7 +291,6 @@ function initializeBot(state, io) {
         state.botStatus = 'desconectado';
         io.emit('status', state.botStatus);
         
-        // Tenta reiniciar automaticamente após 5 segundos
         setTimeout(() => {
             console.log('🔄 Reiniciando bot automaticamente...');
             initializeBot(state, io);
@@ -275,6 +298,12 @@ function initializeBot(state, io) {
     });
 }
 
+/**
+ * Para o bot do WhatsApp, desconectando o cliente e limpando o estado.
+ * @param {Object} state - Estado global compartilhado da aplicação
+ * @param {import('socket.io').Server} io - Instância do Socket.IO
+ * @returns {Promise<boolean>} true se o bot foi parado, false se já estava parado
+ */
 async function stopBot(state, io) {
     if (state.client) {
         console.log('🛑 Parando o bot...');
@@ -284,7 +313,7 @@ async function stopBot(state, io) {
         state.botStatus = 'desconectado';
         state.botStartedAt = null;
         io.emit('status', state.botStatus);
-        console.log(`\u2705 Bot parado com sucesso! (${stoppedAt})`);
+        console.log(`✅ Bot parado com sucesso! (${stoppedAt})`);
         return true;
     }
     return false;

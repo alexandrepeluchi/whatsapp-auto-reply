@@ -1,6 +1,7 @@
 # 🤖 WhatsApp Local Bot
 
-Bot local para WhatsApp com respostas automáticas inteligentes e dashboard web em tempo real. Sem banco de dados, sem cloud — tudo roda na sua máquina.
+Bot local para WhatsApp com respostas automáticas e dashboard web em tempo real.  
+Sem banco de dados, sem cloud — tudo roda na sua máquina.
 
 ---
 
@@ -30,11 +31,11 @@ Bot local para WhatsApp com respostas automáticas inteligentes e dashboard web 
 
 ## 🎯 Visão Geral
 
-O bot monitora mensagens no WhatsApp e responde automaticamente quando detecta palavras-chave configuradas. Todas as configurações são gerenciadas por uma interface web moderna, sem necessidade de editar arquivos manualmente.
+O **WhatsApp Local Bot** monitora mensagens no WhatsApp e responde automaticamente com base em palavras-chave configuráveis. Toda a gestão é feita por um dashboard web — sem necessidade de editar arquivos manualmente.
 
-**Exemplo:** alguém escreve _"oi"_ → o bot responde _"Olá! Como posso ajudar? 😊"_
+**Como funciona:** alguém envia _"oi"_ → o bot responde _"Olá! Como posso ajudar? 😊"_
 
-Funciona em:
+Compatível com:
 - ✅ Grupos do WhatsApp
 - ✅ Conversas privadas
 - ✅ WhatsApp Business
@@ -45,18 +46,18 @@ Funciona em:
 
 | Recurso | Descrição |
 |---------|-----------|
-| 🎲 Respostas múltiplas | Várias respostas por gatilho — escolhidas aleatoriamente para parecer natural |
-| ⏱️ Delay configurável | Fixo ou aleatório (range), simulando tempo de digitação humana |
-| 🎯 Gatilhos flexíveis | Por palavra inteira ou parte da palavra, com ou sem case-sensitive |
-| 🚫 Blacklist de palavras | Ignora mensagens contendo termos de spam |
-| 🚫 Blacklist de grupos | Ignora grupos por nome (busca parcial, case-insensitive) |
-| 📊 Mensagens Respondidas | Histórico em tempo real de todas as respostas enviadas |
-| 📨 Histórico de Mensagens | Log de todas as mensagens recebidas enquanto o bot está ativo |
-| 🔄 Anti-loop | Impede que o bot responda às próprias respostas |
-| 🕐 Filtro temporal | Ignora mensagens enfileiradas antes do bot iniciar |
-| 💾 Auto-save | Configurações salvas automaticamente ao alterar (debounce 400ms) |
-| 🔁 Reset de fábrica | Restaura todas as configurações para os valores padrão |
-| 🌐 Dashboard web | Interface completa com WebSocket em tempo real |
+| 🎲 **Respostas múltiplas** | Várias respostas por gatilho, escolhidas aleatoriamente para parecer natural |
+| ⏱️ **Delay configurável** | Fixo ou aleatório (range), simulando tempo de digitação humana |
+| 🎯 **Gatilhos flexíveis** | Correspondência por palavra inteira ou parcial, com ou sem diferenciação de maiúsculas |
+| 🚫 **Blacklist de palavras** | Ignora mensagens que contenham termos indesejados (ex: spam) |
+| 🚫 **Blacklist de grupos** | Ignora grupos pelo nome (busca parcial, case-insensitive) |
+| 📊 **Mensagens respondidas** | Histórico em tempo real de todas as respostas enviadas pelo bot |
+| 📨 **Histórico de mensagens** | Log de todas as mensagens recebidas enquanto o bot está ativo |
+| 🔄 **Anti-loop** | Impede que o bot responda às próprias respostas |
+| 🕐 **Filtro temporal** | Ignora mensagens enfileiradas antes do bot iniciar |
+| 💾 **Auto-save** | Configurações salvas automaticamente ao alterar (debounce 400ms) |
+| 🔁 **Reset de fábrica** | Restaura todas as configurações para os valores padrão |
+| 🌐 **Dashboard web** | Interface completa com comunicação via WebSocket em tempo real |
 
 ---
 
@@ -68,20 +69,20 @@ Após iniciar o servidor, acesse:
 http://localhost:3000
 ```
 
-### Recursos do Dashboard
+### O que o Dashboard oferece
 
 - **Status em tempo real** — conectado, desconectado, aguardando QR
-- **QR Code integrado** — escaneie direto no navegador
-- **Mensagens Respondidas** — histórico de respostas enviadas pelo bot
-- **Controle do Bot** — iniciar/parar com confirmação
-- **Configurações visuais** — toggles, delay com preview dinâmico
-- **Respostas automáticas** — CRUD completo (criar, editar, deletar)
-- **Lista negra de palavras** — adicionar/remover termos
-- **Lista negra de grupos** — bloquear grupos por nome parcial
-- **Histórico de mensagens** — log de todas as mensagens recebidas
+- **QR Code integrado** — escaneie direto no navegador para autenticar
+- **Mensagens respondidas** — veja o histórico de respostas enviadas pelo bot
+- **Controle do bot** — iniciar e parar com confirmação visual
+- **Configurações visuais** — toggles, inputs de delay com preview dinâmico
+- **Respostas automáticas** — criar, editar e deletar direto na interface
+- **Lista negra de palavras** — adicionar e remover termos bloqueados
+- **Lista negra de grupos** — bloquear grupos por nome (parcial)
+- **Histórico de mensagens** — log completo de mensagens recebidas
 - **Notificações toast** — feedback visual para todas as ações
-- **Modal de confirmação** — confirmações para ações destrutivas
-- **Reset de configurações** — dupla confirmação para restaurar padrões
+- **Modal de confirmação** — dupla confirmação para ações destrutivas
+- **Reset de configurações** — restaura os valores padrão com segurança
 
 ---
 
@@ -108,7 +109,7 @@ whatsapp-local-bot/
 
 ## 📦 Pré-requisitos
 
-- **Node.js** v16 ou superior ([download](https://nodejs.org/))
+- [**Node.js**](https://nodejs.org/) v16 ou superior
 - **npm** (incluso com Node.js)
 - **WhatsApp** ativo no celular
 - Conexão com internet
@@ -149,11 +150,11 @@ Na primeira execução, escaneie o QR Code exibido no dashboard para autenticar 
 
 ## ⚙️ Configuração
 
-Todas as configurações podem ser feitas pelo dashboard. Abaixo estão os detalhes de cada seção.
+Todas as configurações podem ser feitas pelo dashboard web. Abaixo estão os detalhes de cada seção.
 
 ### Respostas Automáticas
 
-Cada resposta automática tem **gatilhos** (palavras-chave) e **respostas**:
+Cada resposta automática possui **gatilhos** (palavras-chave) e uma ou mais **respostas**:
 
 ```javascript
 {
@@ -168,20 +169,20 @@ Cada resposta automática tem **gatilhos** (palavras-chave) e **respostas**:
 
 - Se houver múltiplas respostas, uma é escolhida aleatoriamente a cada mensagem
 - Resposta única pode ser uma string simples (sem array)
-- Gatilhos são verificados na mensagem recebida (contains ou palavra inteira)
+- Gatilhos são verificados na mensagem recebida (por substring ou palavra inteira)
 
 ### Delay de Resposta
 
-Simula tempo de digitação humana:
+Simula o tempo de digitação humana para tornar as respostas mais naturais:
 
-- **Fixo**: preencha apenas o campo mínimo (ex: `10` = sempre 10 segundos)
-- **Aleatório**: preencha mínimo e máximo (ex: `5` a `15` = entre 5 e 15 segundos)
+- **Fixo:** preencha apenas o campo mínimo (ex: `10` = sempre 10 segundos)
+- **Aleatório:** preencha mínimo e máximo (ex: `5` a `15` = entre 5 e 15 segundos)
 
 O dashboard exibe um preview dinâmico do delay configurado.
 
 ### Lista Negra de Palavras
 
-Mensagens contendo termos da blacklist são ignoradas pelo bot. Útil para evitar respostas a spam.
+Mensagens que contenham termos da blacklist são completamente ignoradas pelo bot. Útil para evitar respostas a spam ou conteúdo indesejado.
 
 **Exemplos:** `oferta imperdível`, `clique aqui`, `ganhe dinheiro`
 
@@ -189,32 +190,33 @@ Mensagens contendo termos da blacklist são ignoradas pelo bot. Útil para evita
 
 Bloqueia grupos pelo nome (ou parte do nome). O bot não responde em grupos cujo nome contenha algum termo configurado.
 
-- Busca parcial (contains) e case-insensitive
-- Exemplo: o termo `"vendas"` bloqueia _"Grupo de Vendas"_, _"VENDAS 2026"_, _"promovendas"_
+- A busca é parcial (contains) e case-insensitive
+- **Exemplo:** o termo `"vendas"` bloqueia os grupos _"Grupo de Vendas"_, _"VENDAS 2026"_ e _"promovendas"_
 
 ### Configurações Gerais
 
 | Configuração | Descrição | Padrão |
 |-------------|-----------|--------|
 | Responder em Grupos | Bot responde em chats de grupo | ✅ Ativo |
-| Responder em Privado | Bot responde em conversas privadas | ❌ Inativo |
+| Responder em Privado | Bot responde em conversas privadas | ✅ Ativo |
 | Diferenciar Maiúsculas | Case-sensitive nos gatilhos | ❌ Inativo |
-| Somente Palavra Inteira | Exige match exato da palavra (vs. substring) | ❌ Inativo |
+| Somente Palavra Inteira | Exige correspondência exata da palavra (vs. substring) | ❌ Inativo |
 
 ---
 
 ## 💾 Persistência de Configurações
 
-O sistema usa dois arquivos:
+O sistema utiliza dois arquivos para separar padrões de customizações:
 
 | Arquivo | Propósito | Versionado no Git? |
 |---------|-----------|---------------------|
 | `config.js` | Valores padrão de fábrica (nunca modificado em runtime) | ✅ Sim |
 | `config.local.json` | Customizações do usuário (criado automaticamente) | ❌ Não (.gitignore) |
 
-- Ao salvar configurações pelo dashboard, apenas `config.local.json` é atualizado
-- Ao carregar, o sistema faz merge: `config.local.json` > `config.js`
-- "Resetar Configurações" deleta `config.local.json` e volta aos padrões de `config.js`
+**Como funciona:**
+- Ao salvar pelo dashboard, apenas `config.local.json` é atualizado
+- Ao carregar, o sistema prioriza `config.local.json` sobre `config.js`
+- O botão "Resetar Configurações" remove `config.local.json` e restaura os padrões de `config.js`
 
 ---
 
@@ -223,10 +225,10 @@ O sistema usa dois arquivos:
 1. Instale as dependências com `npm install`
 2. Inicie o servidor com `npm start`
 3. Acesse `http://localhost:3000`
-3. Clique em **Iniciar Bot**
-4. No celular: WhatsApp → **Aparelhos conectados** → **Conectar um aparelho**
-5. Escaneie o QR Code exibido no dashboard
-6. Após autenticação, o status mostra **Conectado**
+4. Clique em **Iniciar Bot**
+5. No celular: WhatsApp → **Aparelhos conectados** → **Conectar um aparelho**
+6. Escaneie o QR Code exibido no dashboard
+7. Após autenticação, o status mostra **Conectado**
 
 > A sessão é salva localmente (pasta `.wwebjs_auth`). Reinícios subsequentes reconectam automaticamente sem QR Code.
 
@@ -251,24 +253,24 @@ O sistema usa dois arquivos:
                                     └──────────────┘
 ```
 
-**Stack:**
-- **Backend:** Node.js, Express, Socket.IO, whatsapp-web.js
-- **Frontend:** HTML, CSS, JavaScript (vanilla — sem frameworks)
-- **Comunicação:** REST API + WebSocket (tempo real)
-- **Persistência:** JSON em arquivo (sem banco de dados)
+### Stack
 
-**API REST:**
+- **Backend:** Node.js, Express, Socket.IO, whatsapp-web.js
+- **Frontend:** HTML, CSS, JavaScript vanilla (sem frameworks)
+- **Comunicação:** REST API + WebSocket (tempo real)
+- **Persistência:** Arquivo JSON local (sem banco de dados)
+
+### API REST
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| GET | `/api/status` | Status do bot |
+| GET | `/api/status` | Status atual do bot |
 | GET | `/api/config` | Configurações atuais |
 | POST | `/api/config` | Salvar configurações |
 | POST | `/api/config/reset` | Resetar para padrões |
-| GET | `/api/respostas` | Listar respostas |
-| POST | `/api/respostas` | Criar resposta |
-| PUT | `/api/respostas/:index` | Editar resposta |
-| DELETE | `/api/respostas/:index` | Deletar resposta |
+| POST | `/api/respostas` | Criar resposta automática |
+| PUT | `/api/respostas/:index` | Editar resposta automática |
+| DELETE | `/api/respostas/:index` | Deletar resposta automática |
 | GET | `/api/historico` | Histórico de respostas |
 | DELETE | `/api/historico` | Limpar histórico de respostas |
 | GET | `/api/mensagens` | Histórico de mensagens |
@@ -276,7 +278,7 @@ O sistema usa dois arquivos:
 | POST | `/api/bot/iniciar` | Iniciar o bot |
 | POST | `/api/bot/parar` | Parar o bot |
 
-**Eventos WebSocket:**
+### Eventos WebSocket
 
 | Evento | Direção | Descrição |
 |--------|---------|-----------|
