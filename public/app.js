@@ -1,8 +1,14 @@
+// ==================== DASHBOARD DO WHATSAPP BOT ====================
+// Interface web para gerenciar o bot em tempo real.
+// Comunica-se com o servidor via REST API e WebSocket (Socket.IO).
+// Responsável por: configurações, respostas automáticas, históricos,
+// blacklists, controle do bot e exibição de status/QR Code.
+
 // ==================== VARIÁVEIS GLOBAIS ====================
-const API_URL = window.location.origin;
-let socket;
-let currentConfig = null;
-let editingIndex = -1;
+const API_URL = window.location.origin;  // URL base para chamadas à API
+let socket;                               // Instância do Socket.IO
+let currentConfig = null;                 // Configurações carregadas do servidor
+let editingIndex = -1;                    // Índice da resposta em edição (-1 = nova)
 
 // ==================== MODAL DE CONFIRMAÇÃO GENÉRICO ====================
 const ConfirmModal = {
@@ -79,25 +85,28 @@ const ConfirmModal = {
 };
 
 // ==================== ELEMENTOS DO DOM ====================
+// Cache de referências a elementos HTML reutilizados ao longo do código.
+// Agrupados por seção da interface para facilitar a manutenção.
+
 const elements = {
-    // Status
+    // Indicador de status (dot + texto)
     statusDot: document.getElementById('statusDot'),
     statusText: document.getElementById('statusText'),
     
-    // QR Code
+    // Seção do QR Code para autenticação
     qrSection: document.getElementById('qrSection'),
     qrCode: document.getElementById('qrCode'),
     
-    // Controle do Bot
+    // Botões de controle do bot
     btnStart: document.getElementById('btnStart'),
     btnStop: document.getElementById('btnStop'),
     
-    // Stats
+    // Contadores exibidos no painel de estatísticas
     totalReplies: document.getElementById('totalReplies'),
     totalSentReplies: document.getElementById('totalSentReplies'),
     totalBlacklist: document.getElementById('totalBlacklist'),
     
-    // Configurações
+    // Toggles e inputs de configuração geral
     replyGroups: document.getElementById('replyGroups'),
     replyPrivate: document.getElementById('replyPrivate'),
     caseSensitive: document.getElementById('caseSensitive'),
@@ -107,35 +116,35 @@ const elements = {
     delayPreview: document.getElementById('delayPreview'),
     delayPreviewText: document.getElementById('delayPreviewText'),
     
-    // Respostas
+    // Lista de respostas automáticas
     repliesList: document.getElementById('repliesList'),
     btnNewReply: document.getElementById('btnNewReply'),
     
-    // Lista Negra
+    // Lista negra de palavras
     blacklistContainer: document.getElementById('blacklistContainer'),
     btnNewTerm: document.getElementById('btnNewTerm'),
     
-    // Lista Negra de Grupos
+    // Lista negra de grupos
     groupBlacklistContainer: document.getElementById('groupBlacklistContainer'),
     btnNewGroupTerm: document.getElementById('btnNewGroupTerm'),
     totalGroupBlacklist: document.getElementById('totalGroupBlacklist'),
     
-    // Modal Lista Negra de Grupos
+    // Modal: adicionar grupo à lista negra
     groupBlacklistModal: document.getElementById('groupBlacklistModal'),
     inputGroupBlacklist: document.getElementById('inputGroupBlacklist'),
     btnCloseGroupBlacklistModal: document.getElementById('btnCloseGroupBlacklistModal'),
     btnCancelGroupBlacklist: document.getElementById('btnCancelGroupBlacklist'),
     btnSaveGroupBlacklist: document.getElementById('btnSaveGroupBlacklist'),
     
-    // Histórico
+    // Histórico de respostas enviadas pelo bot
     historyContainer: document.getElementById('historyContainer'),
     btnClearHistory: document.getElementById('btnClearHistory'),
     
-    // Histórico de Mensagens
+    // Histórico de todas as mensagens recebidas
     messagesContainer: document.getElementById('messagesContainer'),
     btnClearMessages: document.getElementById('btnClearMessages'),
     
-    // Modal Resposta
+    // Modal: criar/editar resposta automática
     replyModal: document.getElementById('replyModal'),
     modalTitle: document.getElementById('modalTitle'),
     inputTriggers: document.getElementById('inputTriggers'),
@@ -144,21 +153,25 @@ const elements = {
     btnCancel: document.getElementById('btnCancel'),
     btnSaveReply: document.getElementById('btnSaveReply'),
     
-    // Modal Lista Negra
+    // Modal: adicionar termo à lista negra de palavras
     blacklistModal: document.getElementById('blacklistModal'),
     inputBlacklist: document.getElementById('inputBlacklist'),
     btnCloseBlacklistModal: document.getElementById('btnCloseBlacklistModal'),
     btnCancelBlacklist: document.getElementById('btnCancelBlacklist'),
     btnSaveBlacklist: document.getElementById('btnSaveBlacklist'),
     
-    // Toast
+    // Notificação toast (feedback visual temporário)
     toast: document.getElementById('toast')
 };
 
 // ==================== WEBSOCKET ====================
-let statusTimeoutId = null;
-let nextStatus = null;
+// Comunicação em tempo real com o servidor via Socket.IO.
+// Recebe atualizações de status, QR Code, novas respostas e mensagens.
 
+let statusTimeoutId = null;  // Timer para delay de transição do status "autenticado"
+let nextStatus = null;       // Status pendente durante a transição
+
+/** Inicializa a conexão WebSocket e registra os handlers de eventos */
 function initWebSocket() {
     socket = io(API_URL);
     
@@ -167,15 +180,16 @@ function initWebSocket() {
     });
     
     socket.on('status', (status) => {
-        // Se houver um delay em andamento para status "autenticado"
+        // Durante a transição "autenticado" → "conectado", enfileira o próximo status
+        // para exibir "Autenticado ✓" por pelo menos 2 segundos
         if (statusTimeoutId && status !== 'autenticado') {
             nextStatus = status;
             return;
         }
-        
         updateStatus(status);
     });
     
+    // Exibe ou esconde a seção do QR Code conforme o servidor envia/limpa
     socket.on('qrcode', (qrcode) => {
         if (qrcode) {
             elements.qrCode.src = qrcode;
@@ -185,11 +199,13 @@ function initWebSocket() {
         }
     });
     
+    // Nova resposta enviada pelo bot — adiciona ao histórico em tempo real
     socket.on('nova-resposta', (record) => {
         addHistoryItem(record);
         updateSentRepliesCount();
     });
     
+    // Nova mensagem recebida — adiciona ao log de mensagens em tempo real
     socket.on('nova-mensagem', (record) => {
         addMessageItem(record);
     });
@@ -200,6 +216,12 @@ function initWebSocket() {
 }
 
 // ==================== FUNÇÕES DE STATUS ====================
+
+/**
+ * Atualiza o indicador visual de status no header do dashboard.
+ * Quando o status é "autenticado", exibe por 2s antes de aceitar o próximo.
+ * @param {string} status - Status atual do bot
+ */
 function updateStatus(status) {
     const statusMap = {
         'desconectado': { text: 'Desconectado', class: '' },
@@ -213,21 +235,29 @@ function updateStatus(status) {
     elements.statusText.textContent = statusInfo.text;
     elements.statusDot.className = 'status-dot ' + statusInfo.class;
     
-    // Se o status for "autenticado", adiciona um delay antes de aceitar novos status
+    // Delay de 2s no status "autenticado" para o usuário visualizar a confirmação
     if (status === 'autenticado') {
         statusTimeoutId = setTimeout(() => {
             statusTimeoutId = null;
-            // Se houver um próximo status na fila, atualiza agora
             if (nextStatus) {
                 const pendingStatus = nextStatus;
                 nextStatus = null;
                 updateStatus(pendingStatus);
             }
-        }, 2000); // 2 segundos de delay
+        }, 2000);
     }
 }
 
 // ==================== FUNÇÕES DE API ====================
+// Helpers para comunicação com o servidor via REST API.
+
+/**
+ * Faz uma requisição HTTP à API do servidor.
+ * Trata erros automaticamente e exibe toast de erro ao usuário.
+ * @param {string} url - Caminho da API (ex: '/api/config')
+ * @param {Object} options - Opções do fetch (method, body, headers, etc.)
+ * @returns {Promise<Object>} Resposta JSON do servidor
+ */
 async function makeRequest(url, options = {}) {
     try {
         const response = await fetch(API_URL + url, {
@@ -250,12 +280,13 @@ async function makeRequest(url, options = {}) {
     }
 }
 
+/** Carrega as configurações do servidor e atualiza toda a interface */
 async function loadConfig() {
     try {
         const config = await makeRequest('/api/config');
         currentConfig = config;
         
-        // Atualiza configurações gerais
+        // Sincroniza os toggles e inputs com os valores do servidor
         elements.replyGroups.checked = config.settings.replyInGroups;
         elements.replyPrivate.checked = config.settings.replyInPrivate;
         elements.caseSensitive.checked = config.settings.caseSensitive;
@@ -264,12 +295,12 @@ async function loadConfig() {
         elements.delayMax.value = config.settings.delayRange.max || '';
         updateDelayPreview();
         
-        // Atualiza stats
+        // Atualiza os contadores de estatísticas
         elements.totalReplies.textContent = config.autoReplies.length;
         elements.totalBlacklist.textContent = config.blacklist.length;
         elements.totalGroupBlacklist.textContent = (config.groupBlacklist || []).length;
         
-        // Renderiza listas
+        // Re-renderiza as listas visuais
         renderReplies();
         renderBlacklist();
         renderGroupBlacklist();
@@ -278,6 +309,7 @@ async function loadConfig() {
     }
 }
 
+/** Atualiza o texto de preview do delay conforme os valores de min/max */
 function updateDelayPreview() {
     const min = parseInt(elements.delayMin.value);
     const max = parseInt(elements.delayMax.value);
@@ -301,6 +333,7 @@ function updateDelayPreview() {
     }
 }
 
+/** Lê os valores atuais da interface e envia ao servidor para salvar */
 async function saveConfig() {
     try {
         currentConfig.settings.replyInGroups = elements.replyGroups.checked;
@@ -319,12 +352,14 @@ async function saveConfig() {
     }
 }
 
+// Auto-save com debounce de 400ms — evita salvar a cada tecla/toggle
 let _saveConfigTimeout = null;
 function autoSaveConfig() {
     clearTimeout(_saveConfigTimeout);
     _saveConfigTimeout = setTimeout(() => saveConfig(), 400);
 }
 
+/** Carrega o histórico de respostas enviadas e renderiza na interface */
 async function loadHistory() {
     try {
         const history = await makeRequest('/api/historico');
@@ -341,6 +376,7 @@ async function loadHistory() {
     }
 }
 
+/** Carrega o histórico de todas as mensagens recebidas e renderiza na interface */
 async function loadMessages() {
     try {
         const messages = await makeRequest('/api/mensagens');
@@ -356,12 +392,16 @@ async function loadMessages() {
     }
 }
 
+/** Atualiza o contador de respostas enviadas no painel de estatísticas */
 function updateSentRepliesCount() {
     const items = elements.historyContainer.querySelectorAll('.historico-item');
     elements.totalSentReplies.textContent = items.length;
 }
 
 // ==================== FUNÇÕES DE RENDERIZAÇÃO ====================
+// Geram o HTML dinâmico para as listas de respostas, blacklists e históricos.
+
+/** Renderiza a lista de respostas automáticas com botões de editar/deletar */
 function renderReplies() {
     elements.repliesList.innerHTML = '';
     
@@ -401,6 +441,7 @@ function renderReplies() {
     });
 }
 
+/** Renderiza os termos da lista negra de palavras como tags removíveis */
 function renderBlacklist() {
     elements.blacklistContainer.innerHTML = '';
     
@@ -422,6 +463,7 @@ function renderBlacklist() {
     });
 }
 
+/** Renderiza os termos da lista negra de grupos como tags removíveis */
 function renderGroupBlacklist() {
     elements.groupBlacklistContainer.innerHTML = '';
     
@@ -445,6 +487,7 @@ function renderGroupBlacklist() {
     });
 }
 
+/** Adiciona um item de resposta ao histórico visual (inserido no topo) */
 function addHistoryItem(item) {
     const firstItem = elements.historyContainer.querySelector('.text-muted');
     if (firstItem) {
@@ -476,6 +519,7 @@ function addHistoryItem(item) {
     elements.historyContainer.insertBefore(div, elements.historyContainer.firstChild);
 }
 
+/** Adiciona uma mensagem recebida ao log visual (inserida no topo) */
 function addMessageItem(item) {
     const firstItem = elements.messagesContainer.querySelector('.text-muted');
     if (firstItem) {
@@ -506,6 +550,7 @@ function addMessageItem(item) {
     elements.messagesContainer.insertBefore(div, elements.messagesContainer.firstChild);
 }
 
+/** Limpa o histórico de mensagens recebidas (com confirmação) */
 async function clearMessages() {
     const confirmed = await ConfirmModal.show({
         title: 'Limpar Mensagens',
@@ -531,6 +576,9 @@ async function clearMessages() {
 }
 
 // ==================== FUNÇÕES DE MODAL ====================
+// Controle de abertura/fechamento dos modais de criação e edição.
+
+/** Abre o modal de resposta automática (nova ou edição pelo índice) */
 function openReplyModal(index = -1) {
     editingIndex = index;
     
@@ -576,10 +624,14 @@ function closeGroupBlacklistModal() {
 }
 
 // ==================== FUNÇÕES DE RESPOSTAS ====================
+// CRUD de respostas automáticas via API.
+
+/** Abre o modal de edição para a resposta no índice informado */
 window.editReply = function(index) {
     openReplyModal(index);
 };
 
+/** Deleta uma resposta automática após confirmação do usuário */
 window.deleteReply = async function(index) {
     const confirmed = await ConfirmModal.show({
         title: 'Deletar Resposta',
@@ -604,6 +656,7 @@ window.deleteReply = async function(index) {
     }
 };
 
+/** Salva a resposta automática (nova ou editada) via API */
 async function saveReply() {
     const triggers = elements.inputTriggers.value
         .split('\n')
@@ -651,6 +704,9 @@ async function saveReply() {
 }
 
 // ==================== FUNÇÕES DE LISTA NEGRA ====================
+// Gerenciamento dos termos bloqueados (palavras e grupos).
+
+/** Remove um termo da lista negra de palavras pelo índice */
 window.removeBlacklist = async function(index) {
     try {
         currentConfig.blacklist.splice(index, 1);
@@ -669,6 +725,7 @@ window.removeBlacklist = async function(index) {
     }
 };
 
+/** Adiciona um novo termo à lista negra de palavras */
 async function addBlacklist() {
     const term = elements.inputBlacklist.value.trim();
     
@@ -696,6 +753,8 @@ async function addBlacklist() {
 }
 
 // ==================== FUNÇÕES DE LISTA NEGRA DE GRUPOS ====================
+
+/** Remove um grupo da lista negra pelo índice */
 window.removeGroupBlacklist = async function(index) {
     try {
         if (!currentConfig.groupBlacklist) currentConfig.groupBlacklist = [];
@@ -715,6 +774,7 @@ window.removeGroupBlacklist = async function(index) {
     }
 };
 
+/** Adiciona um novo grupo à lista negra */
 async function addGroupBlacklist() {
     const term = elements.inputGroupBlacklist.value.trim();
     
@@ -743,6 +803,9 @@ async function addGroupBlacklist() {
 }
 
 // ==================== FUNÇÕES DE CONTROLE DO BOT ====================
+// Iniciar/parar o bot e limpar históricos, sempre com confirmação.
+
+/** Inicia o bot do WhatsApp após confirmação do usuário */
 async function startBot() {
     const confirmed = await ConfirmModal.show({
         title: 'Iniciar Bot',
@@ -768,6 +831,7 @@ async function startBot() {
     }
 }
 
+/** Para o bot do WhatsApp após confirmação do usuário */
 async function stopBot() {
     const confirmed = await ConfirmModal.show({
         title: 'Parar Bot',
@@ -793,6 +857,7 @@ async function stopBot() {
     }
 }
 
+/** Limpa o histórico de respostas enviadas (com confirmação) */
 async function clearHistory() {
     const confirmed = await ConfirmModal.show({
         title: 'Limpar Histórico',
@@ -819,8 +884,10 @@ async function clearHistory() {
 }
 
 // ==================== FUNÇÕES DE RESET ====================
+
+/** Restaura as configurações para os padrões de fábrica (dupla confirmação) */
 async function resetConfig() {
-    // Primeira confirmação
+    // Primeira confirmação — intenção
     const firstConfirm = await ConfirmModal.show({
         title: 'Resetar Configurações',
         message: 'Deseja resetar todas as configurações para os valores padrão?',
@@ -830,7 +897,7 @@ async function resetConfig() {
     });
     if (!firstConfirm) return;
 
-    // Segunda confirmação — aviso de irreversibilidade
+    // Segunda confirmação — alerta de irreversibilidade
     const secondConfirm = await ConfirmModal.show({
         title: 'Ação Irreversível',
         message: 'Tem certeza absoluta? Após a confirmação será impossível desfazer os ajustes. Todas as configurações personalizadas serão perdidas permanentemente.',
@@ -856,6 +923,12 @@ async function resetConfig() {
 }
 
 // ==================== FUNÇÕES UTILITÁRIAS ====================
+
+/**
+ * Exibe uma notificação toast temporária (3 segundos).
+ * @param {string} message - Texto da notificação
+ * @param {'success'|'error'|'warning'} type - Tipo visual do toast
+ */
 function showToast(message, type = 'success') {
     elements.toast.textContent = message;
     elements.toast.className = `toast ${type} show`;
@@ -866,12 +939,15 @@ function showToast(message, type = 'success') {
 }
 
 // ==================== EVENT LISTENERS ====================
+// Vincula ações da interface aos handlers correspondentes.
+
+// Controle do bot
 elements.btnStart.addEventListener('click', startBot);
 elements.btnStop.addEventListener('click', stopBot);
 elements.btnResetConfig = document.getElementById('btnResetConfig');
 elements.btnResetConfig.addEventListener('click', resetConfig);
 
-// Auto-save nas configurações
+// Auto-save: qualquer alteração nos toggles/inputs salva automaticamente (debounce 400ms)
 elements.replyGroups.addEventListener('change', autoSaveConfig);
 elements.replyPrivate.addEventListener('change', autoSaveConfig);
 elements.caseSensitive.addEventListener('change', autoSaveConfig);
@@ -879,28 +955,29 @@ elements.wholeWord.addEventListener('change', autoSaveConfig);
 elements.delayMin.addEventListener('input', () => { updateDelayPreview(); autoSaveConfig(); });
 elements.delayMax.addEventListener('input', () => { updateDelayPreview(); autoSaveConfig(); });
 
+// Botões de ação principal
 elements.btnNewReply.addEventListener('click', () => openReplyModal());
 elements.btnNewTerm.addEventListener('click', openBlacklistModal);
 elements.btnNewGroupTerm.addEventListener('click', openGroupBlacklistModal);
 elements.btnClearHistory.addEventListener('click', clearHistory);
 elements.btnClearMessages.addEventListener('click', clearMessages);
 
-// Modal Resposta
+// Modal: resposta automática
 elements.btnCloseModal.addEventListener('click', closeReplyModal);
 elements.btnCancel.addEventListener('click', closeReplyModal);
 elements.btnSaveReply.addEventListener('click', saveReply);
 
-// Modal Lista Negra
+// Modal: lista negra de palavras
 elements.btnCloseBlacklistModal.addEventListener('click', closeBlacklistModal);
 elements.btnCancelBlacklist.addEventListener('click', closeBlacklistModal);
 elements.btnSaveBlacklist.addEventListener('click', addBlacklist);
 
-// Modal Lista Negra de Grupos
+// Modal: lista negra de grupos
 elements.btnCloseGroupBlacklistModal.addEventListener('click', closeGroupBlacklistModal);
 elements.btnCancelGroupBlacklist.addEventListener('click', closeGroupBlacklistModal);
 elements.btnSaveGroupBlacklist.addEventListener('click', addGroupBlacklist);
 
-// Fechar modal ao clicar fora
+// Fecha qualquer modal ao clicar no overlay (fora do conteúdo)
 elements.replyModal.addEventListener('click', (e) => {
     if (e.target === elements.replyModal) closeReplyModal();
 });
@@ -914,6 +991,8 @@ elements.groupBlacklistModal.addEventListener('click', (e) => {
 });
 
 // ==================== INICIALIZAÇÃO ====================
+// Executa quando o DOM estiver pronto: inicia WebSocket, carrega configs e históricos.
+
 document.addEventListener('DOMContentLoaded', () => {
     ConfirmModal.init();
     initWebSocket();
