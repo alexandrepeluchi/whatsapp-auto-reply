@@ -1,5 +1,13 @@
-// Configuração das respostas automáticas
+// ==================== CONFIGURAÇÕES PADRÃO DO BOT ====================
+// Este arquivo define os valores padrão de fábrica.
+// Alterações feitas pelo dashboard são salvas em config.local.json (gerado automaticamente).
+// Para restaurar esses padrões, use o botão "Resetar Configurações" no dashboard.
+
 module.exports = {
+
+  // Respostas automáticas do bot
+  // Cada entrada possui gatilhos (palavras-chave) e uma ou mais respostas
+  // Se houver múltiplas respostas (array), uma será escolhida aleatoriamente
   autoReplies: [
     {
       triggers: ['oi', 'olá', 'ola', 'hey'],
@@ -19,33 +27,34 @@ module.exports = {
     }
   ],
 
-  // Lista de padrões para ignorar (blacklist de palavras)
-  // Mensagens contendo essas palavras não serão respondidas pelo bot
+  // Lista negra de palavras
+  // Mensagens que contenham qualquer um desses termos serão ignoradas pelo bot
+  // Útil para filtrar spam e mensagens indesejadas
   blacklist: [
     'oferta imperdível',
     'clique aqui',
-    'ganhe dinheiro',
-    'cadastre-se',
-    'promoção relâmpago',
-    'inscreva-se',
-    'bot:',
-    'sistema automático'
+    'ganhe dinheiro'
   ],
 
   // Lista negra de grupos
-  // Se o nome do grupo contiver algum desses termos, o bot não responderá
-  groupBlacklist: [],
+  // O bot não responderá em grupos cujo nome contenha algum desses termos
+  // A busca é parcial e case-insensitive (ex: "vendas" bloqueia "Grupo de Vendas")
+  groupBlacklist: [
+    'promoções',
+    'vendas',
+    'spam'
+  ],
 
-  // Configurações gerais
+  // Configurações gerais do comportamento do bot
   settings: {
-    replyInGroups: true,          // Responder em grupos
-    replyInPrivate: false,        // Responder em conversas privadas
-    replyOwnMessages: false,      // Responder às suas próprias mensagens
-    caseSensitive: false,         // Diferenciar maiúsculas/minúsculas
-    wholeWord: false,             // Exigir palavra completa (true) ou permitir parte da palavra (false)
+    replyInGroups: true,          // Responder mensagens em chats de grupo
+    replyInPrivate: true,         // Responder mensagens em conversas privadas
+    replyOwnMessages: false,      // Responder às próprias mensagens (cuidado com loops)
+    caseSensitive: false,         // Diferenciar maiúsculas de minúsculas nos gatilhos
+    wholeWord: false,             // true = exige palavra exata | false = aceita parte da palavra
     delayRange: {
-      min: 1,                    // Delay mínimo em segundos antes de responder
-      max: 5                     // Delay máximo em segundos antes de responder
+      min: 1,                    // Delay mínimo (em segundos) antes de enviar a resposta
+      max: 5                     // Delay máximo (em segundos) — se igual ao min, delay é fixo
     }
   }
 };
