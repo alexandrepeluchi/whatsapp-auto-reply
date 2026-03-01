@@ -1,9 +1,21 @@
+// ==================== ROTAS DA API REST ====================
+// Define todos os endpoints da API utilizada pelo dashboard.
+// As rotas são organizadas por domínio: status, configurações,
+// respostas automáticas, históricos e controle do bot.
+
 const configManager = require('./config-manager');
 const { initializeBot, stopBot } = require('./whatsapp');
 
+/**
+ * Registra todas as rotas da API no app Express.
+ * @param {import('express').Express} app - Instância do Express
+ * @param {Object} state - Estado global compartilhado da aplicação
+ * @param {import('socket.io').Server} io - Instância do Socket.IO para emitir eventos
+ */
 function registerRoutes(app, state, io) {
 
     // ==================== STATUS ====================
+    // Retorna o estado atual do bot para o dashboard
 
     app.get('/api/status', (req, res) => {
         res.json({
@@ -14,12 +26,15 @@ function registerRoutes(app, state, io) {
     });
 
     // ==================== CONFIGURAÇÕES ====================
+    // Leitura, salvamento e reset das configurações do bot
 
+    /** Retorna as configurações ativas (local > defaults) */
     app.get('/api/config', (req, res) => {
         const config = configManager.load();
         res.json(config);
     });
 
+    /** Salva as configurações enviadas pelo dashboard em config.local.json */
     app.post('/api/config', (req, res) => {
         try {
             configManager.save(req.body);
@@ -31,6 +46,7 @@ function registerRoutes(app, state, io) {
         }
     });
 
+    /** Remove config.local.json e restaura os valores padrão de config.js */
     app.post('/api/config/reset', (req, res) => {
         try {
             const config = configManager.resetToDefaults();
@@ -43,7 +59,9 @@ function registerRoutes(app, state, io) {
     });
 
     // ==================== RESPOSTAS AUTOMÁTICAS ====================
+    // CRUD de regras de resposta automática (gatilhos + respostas)
 
+    /** Adiciona uma nova resposta automática à lista */
     app.post('/api/respostas', (req, res) => {
         try {
             const config = configManager.load();
@@ -57,6 +75,7 @@ function registerRoutes(app, state, io) {
         }
     });
 
+    /** Atualiza uma resposta automática existente pelo índice */
     app.put('/api/respostas/:index', (req, res) => {
         try {
             const index = parseInt(req.params.index);
@@ -75,6 +94,7 @@ function registerRoutes(app, state, io) {
         }
     });
 
+    /** Remove uma resposta automática pelo índice */
     app.delete('/api/respostas/:index', (req, res) => {
         try {
             const index = parseInt(req.params.index);
@@ -93,7 +113,8 @@ function registerRoutes(app, state, io) {
         }
     });
 
-    // ==================== HISTÓRICO ====================
+    // ==================== HISTÓRICO DE RESPOSTAS ====================
+    // Registro das respostas enviadas pelo bot (máximo de 100 entradas)
 
     app.get('/api/historico', (req, res) => {
         res.json(state.messageHistory);
@@ -106,6 +127,7 @@ function registerRoutes(app, state, io) {
     });
 
     // ==================== HISTÓRICO DE MENSAGENS ====================
+    // Log de todas as mensagens recebidas enquanto o bot está ativo (máximo de 200 entradas)
 
     app.get('/api/mensagens', (req, res) => {
         res.json(state.allMessages);
@@ -118,7 +140,9 @@ function registerRoutes(app, state, io) {
     });
 
     // ==================== CONTROLE DO BOT ====================
+    // Iniciar e parar o cliente do WhatsApp via dashboard
 
+    /** Inicia o bot se ainda não estiver em execução */
     app.post('/api/bot/iniciar', (req, res) => {
         if (state.client && state.botStatus !== 'desconectado') {
             console.log('⚠️  Bot já está em execução');
@@ -130,6 +154,7 @@ function registerRoutes(app, state, io) {
         }
     });
 
+    /** Para o bot, desconectando o cliente do WhatsApp */
     app.post('/api/bot/parar', async (req, res) => {
         const stopped = await stopBot(state, io);
         if (stopped) {
