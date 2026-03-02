@@ -91,11 +91,11 @@ http://localhost:3000
 ```
 whatsapp-local-bot/
 ├── server.js              # Servidor Express + WebSocket
-├── config.js              # Configurações padrão (imutável em runtime)
 ├── config.local.json      # Configurações do usuário (gerado automaticamente)
 ├── package.json
 ├── README.md
 ├── src/
+│   ├── config.js          # Configurações padrão (imutável em runtime)
 │   ├── config-manager.js  # Gerenciador de configurações (load/save/reset)
 │   ├── whatsapp.js        # Cliente WhatsApp + processamento de mensagens
 │   └── routes.js          # Rotas da API REST
@@ -210,13 +210,13 @@ O sistema utiliza dois arquivos para separar padrões de customizações:
 
 | Arquivo | Propósito | Versionado no Git? |
 |---------|-----------|---------------------|
-| `config.js` | Valores padrão de fábrica (nunca modificado em runtime) | ✅ Sim |
+| `src/config.js` | Valores padrão de fábrica (nunca modificado em runtime) | ✅ Sim |
 | `config.local.json` | Customizações do usuário (criado automaticamente) | ❌ Não (.gitignore) |
 
 **Como funciona:**
 - Ao salvar pelo dashboard, apenas `config.local.json` é atualizado
-- Ao carregar, o sistema prioriza `config.local.json` sobre `config.js`
-- O botão "Resetar Configurações" remove `config.local.json` e restaura os padrões de `config.js`
+- Ao carregar, o sistema prioriza `config.local.json` sobre `src/config.js`
+- O botão "Resetar Configurações" remove `config.local.json` e restaura os padrões de `src/config.js`
 
 ---
 
