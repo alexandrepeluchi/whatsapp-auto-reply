@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULTS_PATH = path.join(__dirname, '..', 'config.js');
+const DEFAULTS_PATH = path.join(__dirname, 'config.js');
 const LOCAL_PATH = path.join(__dirname, '..', 'config.local.json');
 
 /**
